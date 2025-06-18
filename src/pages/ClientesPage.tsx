@@ -1,40 +1,98 @@
 // src/pages/ClientesPage.tsx
-import { Link as RouterLink } from 'react-router-dom'; // Renombramos el Link para evitar conflictos
-import { Container, Typography, List, ListItem, ListItemButton, ListItemText, ListItemIcon } from '@mui/material';
-import AccountCircleIcon from '@mui/icons-material/AccountCircle'; // Importamos un ícono
+import { useNavigate } from 'react-router-dom';
+import {
+  Container,
+  Typography,
+  List,
+  ListItem,
+  ListItemButton,
+  ListItemText,
+  ListItemIcon,
+  TextField,
+  Divider,
+} from '@mui/material';
+import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 
-// Simulamos los datos que vendrían de tu API
-const clientes = [
-  { id: '1', nombreCompleto: 'Juan Pérez López' },
-  { id: '2', nombreCompleto: 'Ana García Martínez' },
-  { id: '3', nombreCompleto: 'Carlos Sánchez Rodríguez' },
+// Importa las interfaces de tus tipos
+import type { Cliente } from '../types';
+import React from 'react';
+
+// Simulamos los datos que vendrían de tu API (usamos la interfaz Cliente)
+const clientesSimulados: Cliente[] = [
+  {
+    id: '1',
+    nombreCompleto: 'Carlos Enrique Luevano Aguirre',
+    telefono: '555-1234',
+    correo: 'Gunsdead666@example.com',
+    fechaCreacion: new Date('2023-01-15'),
+  },
+  {
+    id: '2',
+    nombreCompleto: 'Antino Rodriguez',
+    telefono: '555-5678',
+    correo: 'antinoxd@example.com',
+    fechaCreacion: new Date('2023-03-20'),
+  },
+  {
+    id: '3',
+    nombreCompleto: 'Oliver Leonardo García Montoya',
+    telefono: '555-9012',
+    correo: 'hermitoli@example.com',
+    fechaCreacion: new Date('2023-05-10'),
+  },
 ];
 
 export function ClientesPage() {
+  const navigate = useNavigate();
+  const [searchTerm, setSearchTerm] = React.useState('');
+
+  const handleClienteClick = (clienteId: string) => {
+    navigate(`/clientes/${clienteId}`);
+  };
+
+  const filteredClientes = clientesSimulados.filter((cliente) =>
+    cliente.nombreCompleto.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    cliente.telefono.includes(searchTerm) ||
+    cliente.correo.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
     <Container maxWidth="md">
       <Typography variant="h4" component="h1" sx={{ my: 4 }}>
         Listado de Clientes
       </Typography>
 
+      <TextField
+        fullWidth
+        label="Buscar Cliente por Nombre, Teléfono o Correo"
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+        sx={{ mb: 3 }}
+      />
+
       <List>
-        {clientes.map((cliente) => (
-          // El componente Link de Router envuelve al ListItemButton de MUI
-          <RouterLink 
-            to={`/clientes/${cliente.id}`} 
-            key={cliente.id} 
-            style={{ textDecoration: 'none', color: 'inherit' }}
-          >
-            <ListItem disablePadding>
-              <ListItemButton>
-                <ListItemIcon>
-                  <AccountCircleIcon />
-                </ListItemIcon>
-                <ListItemText primary={cliente.nombreCompleto} />
-              </ListItemButton>
-            </ListItem>
-          </RouterLink>
-        ))}
+        {filteredClientes.length > 0 ? (
+          filteredClientes.map((cliente) => (
+            <React.Fragment key={cliente.id}>
+              <ListItem disablePadding>
+                <ListItemButton onClick={() => handleClienteClick(cliente.id)}>
+                  <ListItemIcon>
+                    <AccountCircleIcon />
+                  </ListItemIcon>
+                  <ListItemText
+                    primary={cliente.nombreCompleto}
+                    secondary={`Teléfono: ${cliente.telefono} | Correo: ${cliente.correo}`}
+                  />
+                </ListItemButton>
+              </ListItem>
+              <Divider />
+            </React.Fragment>
+          ))
+        ) : (
+          <Typography variant="body1" sx={{ textAlign: 'center', mt: 3 }}>
+            No se encontraron clientes.
+          </Typography>
+        )}
       </List>
     </Container>
   );
