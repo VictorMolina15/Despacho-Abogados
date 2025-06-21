@@ -9,6 +9,7 @@ import {
   IconButton,
   Menu,
   MenuItem,
+  useTheme,
 } from '@mui/material';
 import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
@@ -20,6 +21,7 @@ export function AppLayout() {
   const { toggleColorMode, mode } = useThemeContext();
   const navigate = useNavigate(); // Hook para la navegación
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null); // Para el menú de usuario
+  const theme = useTheme(); 
 
   const handleMenu = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -38,27 +40,33 @@ export function AppLayout() {
 
   return (
     <Box sx={{ flexGrow: 1 }}>
-      <AppBar position="static">
-        <Toolbar>
+      <AppBar position="static" elevation={0} color='transparent' sx={{ backgroundColor: theme.palette.toolbar.main }}>
+        <Toolbar sx={{ borderBottom: `1px solid ${theme.palette.divider}` }}>
           <Typography
             variant="h6"
             component="div"
             sx={{ flexGrow: 1, cursor: 'pointer' }}
             onClick={() => navigate('/')} // Navegar a la página principal al hacer clic en el título
           >
-            <img src="../assets/Logo(1).jpg" alt="Logo" style={{ height: '40px', marginRight: '10px' }} />
+            <img
+              src={mode === 'dark' ? '/assets/Logo(2)_crop.png' : '/assets/Logo(1)_crop.png'}
+              alt="Logo"
+              style={{ height: '80px', marginTop: '5px' }} // Ajusta el estilo según tus necesidades
+            />
           </Typography>
-
-          <Button color="inherit" onClick={() => navigate('/clientes')}>
+          <Button color="inherit"  onClick={() => navigate('/')} sx={{ p:'10px',fontSize: '18px' }} >
+            Inicio
+          </Button>
+          <Button color="inherit"  onClick={() => navigate('/clientes')} sx={{ p:'10px',fontSize: '18px' }} >
             Clientes
           </Button>
-          <Button color="inherit" onClick={() => navigate('/divorcios')}>
+          <Button color="inherit" onClick={() => navigate('/divorcios')} sx={{ p:'10px',fontSize: '18px' }} >
             Divorcios
           </Button>
           {/* Aquí puedes añadir más botones para otras secciones del Navbar */}
 
           {/* Botón de Dark/Light Mode */}
-          <IconButton sx={{ ml: 1 }} onClick={toggleColorMode} color="inherit">
+          <IconButton sx={{ ml: 1, height:'50px',width:'50px'}} onClick={toggleColorMode} color="inherit">
             {mode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
           </IconButton>
 
@@ -85,6 +93,9 @@ export function AppLayout() {
               vertical: 'top',
               horizontal: 'right',
             }}
+            sx={{
+              mt: '45px',
+            }}
             open={Boolean(anchorEl)}
             onClose={handleClose}
           >
@@ -93,7 +104,7 @@ export function AppLayout() {
           </Menu>
         </Toolbar>
       </AppBar>
-      <Box component="main" sx={{ p: 3 }}>
+      <Box component="main" sx={{ p: 1 }}>
         <Outlet /> {/* Aquí se renderizarán las rutas anidadas */}
       </Box>
     </Box>

@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 // src/pages/ClienteDetailPage.tsx
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -47,7 +48,7 @@ const clientesSimulados: Cliente[] = [
   },
 ];
 
-const expedientesSimulados: Expediente[] = [
+export const expedientesSimulados: Expediente[] = [
   { id: 'exp1', clienteId: '1', tipo: 'Divorcio', documentos: [] },
   { id: 'exp2', clienteId: '1', tipo: 'Mercantil', documentos: [] },
   { id: 'exp3', clienteId: '2', tipo: 'Penal', documentos: [] },

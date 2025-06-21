@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 // src/pages/ClientesPage.tsx
 import { useNavigate } from 'react-router-dom';
 import {
@@ -18,7 +19,7 @@ import type { Cliente } from '../types';
 import React from 'react';
 
 // Simulamos los datos que vendrían de tu API (usamos la interfaz Cliente)
-const clientesSimulados: Cliente[] = [
+export const clientesSimulados: Cliente[] = [
   {
     id: '1',
     nombreCompleto: 'Carlos Enrique Luevano Aguirre',

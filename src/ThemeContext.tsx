@@ -1,7 +1,17 @@
 // src/themeContext.tsx
 import { createContext, useMemo, useState, useContext, type ReactNode } from 'react';
 import { createTheme, ThemeProvider as MuiThemeProvider } from '@mui/material/styles';
-import CssBaseline from '@mui/material/CssBaseline'; 
+import CssBaseline from '@mui/material/CssBaseline';
+
+declare module '@mui/material/styles' {
+  interface Palette {
+    toolbar: Palette['primary']; 
+  }
+
+  interface PaletteOptions {
+    toolbar?: PaletteOptions['primary']; 
+  }
+}
 
 // 1. Definir el tipo del contexto
 interface ThemeContextType {
@@ -38,31 +48,35 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
           mode, // Esto es clave: 'light' o 'dark'
           ...(mode === 'light'
             ? {
-                // palette values for light mode
-                primary: {
-                  main: '#1976d2', // Un azul estándar de Material-UI
-                },
-                secondary: {
-                  main: '#dc004e',
-                },
-                background: {
-                  default: '#f5f5f5', // Un gris claro para el fondo
-                  paper: '#ffffff', // Blanco para las superficies de Paper
-                },
-              }
+              toolbar: {
+                main: '#ffffff',
+              },
+              primary: {
+                main: '#1976d2', // Un azul estándar de Material-UI
+              },
+              secondary: {
+                main: '#dc004e',
+              },
+              background: {
+                default: '#f5f5f5', // Un gris claro para el fondo
+                paper: '#ffffff', // Blanco para las superficies de Paper
+              },
+            }
             : {
-                // palette values for dark mode
-                primary: {
-                  main: '#90caf9', // Azul claro para el modo oscuro
-                },
-                secondary: {
-                  main: '#f48fb1',
-                },
-                background: {
-                  default: '#121212', // Un gris muy oscuro
-                  paper: '#1d1d1d', // Un gris oscuro para las superficies de Paper
-                },
-              }),
+              toolbar: {
+                main: '#283b5d', 
+              },
+              primary: {
+                main: '#90caf9', // Azul claro para el modo oscuro
+              },
+              secondary: {
+                main: '#f48fb1',
+              },
+              background: {
+                default: '#121212', // Un gris muy oscuro
+                paper: '#1d1d1d', // Un gris oscuro para las superficies de Paper
+              },
+            }),
         },
         typography: {
           fontFamily: 'Roboto, sans-serif', // Asegúrate de usar la fuente que importas en index.html
