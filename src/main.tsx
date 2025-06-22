@@ -11,11 +11,16 @@ import { ThemeProvider } from './ThemeContext';
 import CssBaseline from '@mui/material/CssBaseline';
 import { AppLayout } from './components/AppLayout'; // Importa el nuevo layout
 import { HomePage } from './pages/HomePage'; // Importa la página de inicio
+import { AdminPage } from './pages/AdminPage';
 
 const router = createBrowserRouter([
   {
     path: '/login',
     element: <LoginPage />,
+  },
+  {
+    path: '/admin',
+    element: <AdminPage />,
   },
   {
     path: '/', // Esta será la ruta principal (dashboard)

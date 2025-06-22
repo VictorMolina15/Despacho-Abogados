@@ -81,6 +81,18 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
         typography: {
           fontFamily: 'Roboto, sans-serif', // Asegúrate de usar la fuente que importas en index.html
         },
+        components: { // <-- Sección para sobrescribir estilos de componentes
+          MuiButton: {
+            styleOverrides: {
+              root: {
+                '&.Mui-focusVisible': {
+                  outline: 'none', // Asegura que no haya outline al enfocar
+                  boxShadow: 'none', // Asegura que no haya box-shadow al enfocar
+                },
+              },
+            },
+          },
+        },
       }),
     [mode],
   );

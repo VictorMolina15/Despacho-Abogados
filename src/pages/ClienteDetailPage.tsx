@@ -19,34 +19,11 @@ import SaveIcon from '@mui/icons-material/Save';
 import CancelIcon from '@mui/icons-material/Cancel';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import EditIcon from '@mui/icons-material/Edit';
+import { clientesSimulados } from './ClientesPage';
 
 // Importa las interfaces de tus tipos
 import type { Cliente, Expediente } from '../types';
 
-// Simulamos los datos (puedes mover esto a un mock si lo prefieres)
-const clientesSimulados: Cliente[] = [
-  {
-    id: '1',
-    nombreCompleto: 'Carlos Enrique Luevano Aguirre',
-    telefono: '555-1234',
-    correo: 'Gunsdead666@example.com',
-    fechaCreacion: new Date('2023-01-15'),
-  },
-  {
-    id: '2',
-    nombreCompleto: 'Antino Rodriguez',
-    telefono: '555-5678',
-    correo: 'antinoxd@example.com',
-    fechaCreacion: new Date('2023-03-20'),
-  },
-  {
-    id: '3',
-    nombreCompleto: 'Oliver Leonardo García Montoya',
-    telefono: '555-9012',
-    correo: 'hermitoli@example.com',
-    fechaCreacion: new Date('2023-05-10'),
-  },
-];
 
 export const expedientesSimulados: Expediente[] = [
   { id: 'exp1', clienteId: '1', tipo: 'Divorcio', documentos: [] },

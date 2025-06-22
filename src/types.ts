@@ -1,5 +1,15 @@
 // En un archivo como src/types.ts
 
+export interface Usuario {
+  id: string; // O number, si tu API lo maneja así
+  nombres: string;
+  apellidos: string;
+  telefono?: string; // Opcional
+  correo: string;
+  rol: 'SuperAdmin' | 'Admin' | 'Usuario';
+  fechaRegistro: Date; // Usaremos camelCase en frontend para consistencia
+}
+
 export interface Cliente {
   id: string;
   nombreCompleto: string;

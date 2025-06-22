@@ -15,13 +15,22 @@ import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
 import AccountCircle from '@mui/icons-material/AccountCircle';
 import { useThemeContext } from '../ThemeContext';
-import { Outlet, useNavigate } from 'react-router-dom'; // Outlet para renderizar rutas hijas
+import { Outlet, useNavigate, useLocation } from 'react-router-dom'; // Outlet para renderizar rutas hijas
 
 export function AppLayout() {
   const { toggleColorMode, mode } = useThemeContext();
   const navigate = useNavigate(); // Hook para la navegación
+  const location = useLocation(); // Hook para obtener la ubicación actual
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null); // Para el menú de usuario
   const theme = useTheme(); 
+
+  // Función para determinar si un enlace está activo
+  const isActive = (path: string) => {
+    if (path === '/') {
+      return location.pathname === '/';
+    }
+    return location.pathname.startsWith(path);
+  };
 
   const handleMenu = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -54,13 +63,16 @@ export function AppLayout() {
               style={{ height: '80px', marginTop: '5px' }} // Ajusta el estilo según tus necesidades
             />
           </Typography>
-          <Button color="inherit"  onClick={() => navigate('/')} sx={{ p:'10px',fontSize: '18px' }} >
+          <Button color={isActive('/') ? 'primary' : 'inherit'} onClick={() => navigate('/')} sx={{ borderRadius:'0', p:'30px 15px',fontSize: '18px',
+            borderBottom: isActive('/') ? `2px solid ${theme.palette.primary.main}` : 'none', }} >
             Inicio
           </Button>
-          <Button color="inherit"  onClick={() => navigate('/clientes')} sx={{ p:'10px',fontSize: '18px' }} >
+          <Button color={isActive('/clientes') ? 'primary' : 'inherit'}  onClick={() => navigate('/clientes')} sx={{ borderRadius:'0', p:'30px 15px',fontSize: '18px',
+            borderBottom: isActive('/clientes') ? `2px solid ${theme.palette.primary.main}` : 'none', }} >
             Clientes
           </Button>
-          <Button color="inherit" onClick={() => navigate('/divorcios')} sx={{ p:'10px',fontSize: '18px' }} >
+          <Button color={isActive('/divorcios') ? 'primary' : 'inherit'} onClick={() => navigate('/divorcios')} sx={{ borderRadius:'0', p:'30px 15px',fontSize: '18px',
+            borderBottom: isActive('/divorcios') ? `2px solid ${theme.palette.primary.main}` : 'none', }} >
             Divorcios
           </Button>
           {/* Aquí puedes añadir más botones para otras secciones del Navbar */}
