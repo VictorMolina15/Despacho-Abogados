@@ -4,14 +4,17 @@ import './assets/index.css';
 import ReactDOM from 'react-dom/client';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom'; // Importa Navigate
 import { LoginPage } from './pages/LoginPage';
-import { ClientesPage } from './pages/ClientesPage'; // Esta ahora será la lista de clientes
-import { ClienteDetailPage } from './pages/ClienteDetailPage'; // Nuevo/modificado para el detalle del cliente
+import { ClientesPage, ClientListPage } from './pages/ClientesPage';
+import { ClienteDetailPage } from './pages/ClienteDetailPage';
 import { DivorciosPage } from './pages/DivorciosPage'; // Importa la página de divorcios
 import { ThemeProvider } from './ThemeContext';
 import CssBaseline from '@mui/material/CssBaseline';
 import { AppLayout } from './components/AppLayout'; // Importa el nuevo layout
 import { HomePage } from './pages/HomePage'; // Importa la página de inicio
 import { AdminPage } from './pages/AdminPage';
+import { ProtectedRoute } from './components/ProtectedRoute'
+import { RoleGuard } from './components/RoleGuard'
+
 
 const router = createBrowserRouter([
   {
@@ -19,34 +22,42 @@ const router = createBrowserRouter([
     element: <LoginPage />,
   },
   {
-    path: '/admin',
-    element: <AdminPage />,
-  },
-  {
-    path: '/', // Esta será la ruta principal (dashboard)
-    element: <AppLayout />, // Usa el layout para estas rutas
+    path: '/',
+    element: <ProtectedRoute />, // El guardián protege a todas sus rutas hijas.
     children: [
       {
-        index: true, // Esto hace que HomePage se renderice en la ruta '/'
-        element: <HomePage />,
+        path: '/', // Esta será la ruta principal (dashboard)
+        element: <AppLayout />, // Usa el layout para estas rutas
+        children: [
+          {
+            // --- Rutas para Admin y Usuario ---
+            element: <RoleGuard allowedRoles={['Admin', 'Usuario']} />,
+            children: [
+              { index: true, element: <HomePage /> },
+              {
+                path: 'clientes', element: <ClientesPage />, children: [
+                  {
+                    index: true,
+                    element: <ClientListPage />
+                  },
+                  {
+                    path: ':clienteId',
+                    element: <ClienteDetailPage />
+                  },
+                ]
+              },
+              { path: 'divorcios', element: <DivorciosPage /> },
+            ],
+          },
+          // --- Rutas solo para SuperAdmin ---
+          {
+            element: <RoleGuard allowedRoles={['SuperAdmin']} />,
+            children: [
+              { path: 'admin', element: <AdminPage /> },
+            ],
+          },
+        ],
       },
-      {
-        path: 'clientes', // Ruta para la lista de clientes
-        element: <ClientesPage />,
-      },
-      {
-        path: 'clientes/:clienteId', // Ruta para el detalle de un cliente específico
-        element: <ClienteDetailPage />,
-      },
-      {
-        path: 'divorcios', // Ruta para la sección de divorcios
-        element: <DivorciosPage />,
-      },
-      // Puedes añadir una redirección a '/login' si no hay un usuario autenticado
-      // {
-      //   path: '*',
-      //   element: <Navigate to="/login" replace />,
-      // },
     ],
   },
 ]);

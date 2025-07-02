@@ -1,240 +1,266 @@
-/* eslint-disable react-refresh/only-export-components */
 // src/pages/ClientesPage.tsx
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useNavigate, Outlet } from 'react-router-dom';
 import {
-  Container,
-  Typography,
-  List,
-  ListItem,
-  ListItemButton,
-  ListItemText,
-  ListItemIcon,
-  TextField,
-  Divider,
-  Pagination,
-  Box,
+  Container, Typography, List, ListItemButton, ListItemText,
+  ListItemIcon, TextField, Divider, Pagination, Box, Alert, CircularProgress, Paper,
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle
 } from '@mui/material';
+import debounce from 'lodash/debounce';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
-
-// Importa las interfaces de tus tipos
+import AddIcon from '@mui/icons-material/Add';
 import type { Cliente } from '../types';
-import React, { useState, useEffect } from 'react';
 
-// Simulamos los datos que vendrían de tu API (usamos la interfaz Cliente)
-export const clientesSimulados: Cliente[] = [
-  {
-    id: '1',
-    nombreCompleto: 'Carlos Enrique Luevano Aguirre',
-    telefono: '555-1234',
-    correo: 'Gunsdead666@example.com',
-    fechaCreacion: new Date('2023-01-15'),
-  },
-  {
-    id: '2',
-    nombreCompleto: 'Antino Rodriguez',
-    telefono: '555-5678',
-    correo: 'antinoxd@example.com',
-    fechaCreacion: new Date('2023-03-20'),
-  },
-  {
-    id: '3',
-    nombreCompleto: 'Oliver Leonardo García Montoya',
-    telefono: '555-9012',
-    correo: 'hermitoli@example.com',
-    fechaCreacion: new Date('2023-05-10'),
-  },
-  {
-    id: '4',
-    nombreCompleto: 'Luis Alberto Hernández Díaz',
-    telefono: '555-4444',
-    correo: 'luis.hernandez@example.com',
-    fechaCreacion: new Date('2023-05-12'),
-  },
-  {
-    id: '5',
-    nombreCompleto: 'Ana Gabriela Morales Vega',
-    telefono: '555-5555',
-    correo: 'ana.morales@example.com',
-    fechaCreacion: new Date('2023-05-14'),
-  },
-  {
-    id: '6',
-    nombreCompleto: 'Ricardo Pérez Jiménez',
-    telefono: '555-6666',
-    correo: 'ricardo.perez@example.com',
-    fechaCreacion: new Date('2023-05-16'),
-  },
-  {
-    id: '7',
-    nombreCompleto: 'Valeria Torres Sánchez',
-    telefono: '555-7777',
-    correo: 'valeria.torres@example.com',
-    fechaCreacion: new Date('2023-05-18'),
-  },
-  {
-    id: '8',
-    nombreCompleto: 'Miguel Ángel Vargas Soto',
-    telefono: '555-8888',
-    correo: 'miguel.vargas@example.com',
-    fechaCreacion: new Date('2023-05-20'),
-  },
-  {
-    id: '9',
-    nombreCompleto: 'Paola Martínez Ríos',
-    telefono: '555-9999',
-    correo: 'paola.martinez@example.com',
-    fechaCreacion: new Date('2023-05-22'),
-  },
-  {
-    id: '10',
-    nombreCompleto: 'Diego Alejandro Cruz León',
-    telefono: '555-1010',
-    correo: 'diego.cruz@example.com',
-    fechaCreacion: new Date('2023-05-24'),
-  },
-  {
-    id: '11',
-    nombreCompleto: 'Camila Herrera Ponce',
-    telefono: '555-1212',
-    correo: 'camila.herrera@example.com',
-    fechaCreacion: new Date('2023-05-26'),
-  },
-  {
-    id: '12',
-    nombreCompleto: 'Emilio Navarro Salas',
-    telefono: '555-1313',
-    correo: 'emilio.navarro@example.com',
-    fechaCreacion: new Date('2023-05-28'),
-  },
-  {
-    id: '13',
-    nombreCompleto: 'Jose Emiliano Loyola Garza',
-    telefono: '555-1313',
-    correo: 'jose.loyola@example.com',
-    fechaCreacion: new Date('2023-05-28'),
-  },
-  {
-    id: '14',
-    nombreCompleto: 'Victor Hugo Molina Ruiz',
-    telefono: '555-1313',
-    correo: 'victor.molina@example.com',
-    fechaCreacion: new Date('2023-05-28'),
-  },
-];
+// Tipos para el nuevo formulario
+type NewClientFormData = {
+  nombres: string;
+  apellidos: string;
+  telefono: string;
+  correo: string;
+};
+type FormErrors = Partial<NewClientFormData>;
 
-export function ClientesPage() {
+// Este es el componente que muestra la lista de clientes
+export function ClientListPage() {
   const navigate = useNavigate();
+  const [clientes, setClientes] = useState<Cliente[]>([]);
+  const [loading, setLoading] = useState(true);
+  
+  const [apiError, setApiError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [clientes, setClientes] = useState<Cliente[]>([]); // Estado para los clientes cargados
-  const [currentPage, setCurrentPage] = useState(1); // Estado para la página actual
-  const [pageSize] = useState(10); // Cantidad de elementos por página
-  const [totalItems, setTotalItems] = useState(0); // Total de clientes que coinciden con la búsqueda
-  const [loading, setLoading] = useState(false); // Estado de carga
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize] = useState(10);
+  const [totalCount, setTotalCount] = useState(0);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
-  // Función para cargar los clientes desde la API
-  const fetchClientes = async (page: number, term: string) => {
+  // Estados para el diálogo de añadir cliente
+  const [openDialog, setOpenDialog] = useState(false);
+  const [dialogLoading,setDialogLoading] = useState(false)
+  const [newClient, setNewClient] = useState<NewClientFormData>({ nombres: '', apellidos: '', telefono: '', correo: '' });
+  const [formErrors, setFormErrors] = useState<FormErrors>({});
+
+  // --- Manejadores para el Diálogo ---
+  const handleOpenDialog = () => {
+    setNewClient({ nombres: '', apellidos: '', telefono: '', correo: '' });
+    setOpenDialog(true);
+    setFormErrors({});
+  };
+  const handleCloseDialog = () => setOpenDialog(false);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target as { name: keyof NewClientFormData; value: string };
+    setNewClient(prev => ({ ...prev, [name]: value }));
+    if (formErrors[name]) {
+      setFormErrors(prev => ({ ...prev, [name]: undefined }));
+    }
+  };
+
+  const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    const { name, value } = e.target as { name: keyof NewClientFormData; value: string };
+    const error = validateField(name, value);
+    setFormErrors(prev => ({ ...prev, [name]: error }));
+  };
+
+   const validateField = (name: string, value: string): string | undefined => {
+    switch (name) {
+      case 'nombres':
+      case 'apellidos': {
+        const nameRegex = /^[a-zA-ZáéíóúÁÉÍÓÚüÜñÑ\s]+$/;
+        if (!value) return 'Este campo es requerido.';
+        return nameRegex.test(value) ? undefined : 'Solo se permiten letras y espacios.';
+      }
+      case 'correo': {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!value) return 'El correo es requerido.';
+        return emailRegex.test(value) ? undefined : 'Introduce un correo válido.';
+      }
+      case 'telefono': {
+        const phoneRegex = /^[0-9]{10}$/;
+        return !value || phoneRegex.test(value) ? undefined : 'El teléfono debe tener 10 números.';
+      }
+      default:
+        return undefined;
+    }
+  };
+
+  const fetchClientes = async (page: number, search: string) => {
     setLoading(true);
+    setApiError(null);
     try {
-
-      // Simula la búsqueda y paginación usando clientesSimulados en lugar de fetch (cambiar esto por tu llamada a la API real)
-      const filtered = clientesSimulados.filter((c) =>
-        c.nombreCompleto.toLowerCase().includes(term.toLowerCase()) ||
-        c.telefono.toLowerCase().includes(term.toLowerCase()) ||
-        c.correo.toLowerCase().includes(term.toLowerCase())
-      );
-      const totalCount = filtered.length;
-      const start = (page - 1) * pageSize;
-      const paginated = filtered.slice(start, start + pageSize);
-      const data = {
-        data: paginated,
-        totalCount,
-        currentPage: page,
-      };
-
-      setClientes(data.data.map((c: Cliente) => ({ // Mapea los datos de la API a tu tipo Cliente
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(`http://localhost:3000/api/clientes?page=${page}&pageSize=${pageSize}&searchTerm=${search}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Error al cargar los clientes.');
+      }
+      const data = await response.json();
+      setClientes(data.data.map((c: {
+        id: string;
+        nombres: string;
+        apellidos: string;
+        correo: string;
+        telefono?: string;
+        fecha_creacion: string;
+      }) => ({
         ...c,
-        fechaCreacion: new Date(c.fechaCreacion), // Asegúrate de convertir la fecha si viene como string
+        fechaCreacion: new Date(c.fecha_creacion),
+        nombreCompleto: `${c.nombres} ${c.apellidos}`
       })));
-      setTotalItems(data.totalCount);
-      setCurrentPage(data.currentPage);
-    } catch (error) {
-      console.error('Error al cargar clientes:', error);
-      // Manejar el error, quizás mostrar un mensaje al usuario
+      setTotalCount(data.totalCount);
+    } catch (err: unknown) {
+      setApiError(err instanceof Error ? err.message : 'Error desconocido');
     } finally {
       setLoading(false);
     }
   };
 
-  // Cargar clientes al montar el componente o cuando cambie la página/término de búsqueda
-  useEffect(() => {
-    fetchClientes(currentPage, searchTerm);
-  }, [currentPage, searchTerm, pageSize]); // Dependencias del efecto
+  const handleSaveClient = async () => {
+    const errors: FormErrors = {};
+    (Object.keys(newClient) as Array<keyof NewClientFormData>).forEach(key => {
+      const error = validateField(key, newClient[key]);
+      if (error) errors[key] = error;
+    });
 
-  const handleClienteClick = (clienteId: string) => {
-    navigate(`/clientes/${clienteId}`);
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      return;
+    }
+
+    setDialogLoading(true);
+    setFormErrors({});
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch('http://localhost:3000/api/clientes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify(newClient)
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || 'Error al guardar el cliente.');
+      }
+      handleCloseDialog();
+      fetchClientes(1, ''); // Refrescar la lista volviendo a la página 1
+    } catch (err: unknown) {
+      setFormErrors({ correo: err instanceof Error ? err.message : 'Error desconocido' }); // Mostrar el error de la API en el formulario
+    } finally {
+      setDialogLoading(false);
+    }
   };
 
-  const handlePageChange = (event: React.ChangeEvent<unknown>, value: number) => {
+  const debouncedFetch = useMemo(() => debounce(fetchClientes, 300), []);  // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    debouncedFetch(currentPage, searchTerm);
+    return () => debouncedFetch.cancel();
+  }, [currentPage, searchTerm, debouncedFetch]);
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+    setCurrentPage(1);
+  };
+
+  const handlePageChange = (_event: React.ChangeEvent<unknown>, value: number) => {
     setCurrentPage(value);
   };
 
-  // Cálculo del total de páginas
-  const totalPages = Math.ceil(totalItems / pageSize);
+  const handleClienteClick = (clienteId: string) => {
+    navigate(`${clienteId}`);
+  };
+
+  const totalPages = Math.ceil(totalCount / pageSize);
 
   return (
     <Container maxWidth="md">
-      <Typography variant="h4" component="h1" sx={{ my: 4 }}>
-        Listado de Clientes
-      </Typography>
-
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', my: 4 }}>
+        <Typography variant="h4" component="h1">Listado de Clientes</Typography>
+        <Button variant="contained" startIcon={<AddIcon />} onClick={handleOpenDialog}>
+          Añadir Cliente
+        </Button>
+      </Box>
       <TextField
         fullWidth
         label="Buscar Cliente por Nombre, Teléfono o Correo"
         value={searchTerm}
-        onChange={(e) => setSearchTerm(e.target.value)}
+        onChange={handleSearchChange}
+        inputRef={searchInputRef}
         sx={{ mb: 3 }}
       />
+      {apiError && <Alert severity="error" sx={{ mb: 2 }}>{apiError}</Alert>}
 
-      {loading ? (
-        <Typography sx={{ textAlign: 'center', mt: 3 }}>Cargando clientes...</Typography>
+      {loading && clientes.length === 0 ? (
+        // Muestra el spinner solo en la carga inicial
+        <Box sx={{ display: 'flex', justifyContent: 'center', p: 5 }}>
+          <CircularProgress />
+        </Box>
       ) : (
-        <>
+        // Una vez cargado, la lista se mantiene y solo se actualiza
+        <Paper elevation={3}>
           <List>
             {clientes.length > 0 ? (
               clientes.map((cliente) => (
                 <React.Fragment key={cliente.id}>
-                  <ListItem disablePadding>
-                    <ListItemButton onClick={() => handleClienteClick(cliente.id)}>
-                      <ListItemIcon>
-                        <AccountCircleIcon />
-                      </ListItemIcon>
-                      <ListItemText
-                        primary={cliente.nombreCompleto}
-                        secondary={`Teléfono: ${cliente.telefono} | Correo: ${cliente.correo}`}
-                      />
-                    </ListItemButton>
-                  </ListItem>
+                  <ListItemButton onClick={() => handleClienteClick(cliente.id)}>
+                    <ListItemIcon><AccountCircleIcon /></ListItemIcon>
+                    <ListItemText
+                      primary={cliente.nombreCompleto}
+                      secondary={`Correo: ${cliente.correo} | Teléfono: ${cliente.telefono || 'N/A'}`}
+                    />
+                  </ListItemButton>
                   <Divider />
                 </React.Fragment>
               ))
             ) : (
-              <Typography variant="body1" sx={{ textAlign: 'center', mt: 3 }}>
+              <Typography variant="body1" sx={{ textAlign: 'center', py: 3 }}>
                 No se encontraron clientes.
               </Typography>
             )}
           </List>
-          {totalPages > 1 && ( // Mostrar paginación solo si hay más de una página
-            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
-              <Pagination
-                count={totalPages}
-                page={currentPage}
-                onChange={handlePageChange}
-                color="primary"
-              />
-            </Box>
-          )}
-        </>
+        </Paper>
       )}
+
+      {totalPages > 1 && (
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+          <Pagination
+            count={totalPages}
+            page={currentPage}
+            onChange={handlePageChange}
+            color="primary"
+            disabled={loading}
+          />
+        </Box>
+      )}
+      {/* --- Diálogo para Añadir Cliente --- */}
+      <Dialog open={openDialog} onClose={handleCloseDialog}>
+        <DialogTitle>Añadir Nuevo Cliente</DialogTitle>
+        <DialogContent>
+          <TextField name="nombres" label="Nombres" required fullWidth margin="normal" value={newClient.nombres} onChange={handleChange} 
+          onBlur={handleBlur} error={!!formErrors.nombres} helperText={formErrors.nombres} />
+          <TextField name="apellidos" label="Apellidos" required fullWidth margin="normal" value={newClient.apellidos} onChange={handleChange} 
+          onBlur={handleBlur} error={!!formErrors.apellidos} helperText={formErrors.apellidos} />
+          <TextField name="telefono" label="Teléfono" fullWidth margin="normal" value={newClient.telefono} onChange={handleChange} 
+          onBlur={handleBlur} error={!!formErrors.telefono} helperText={formErrors.telefono} />
+          <TextField name="correo" label="Correo Electrónico" required type="email" fullWidth margin="normal" value={newClient.correo} onChange={handleChange} 
+          onBlur={handleBlur} error={!!formErrors.correo} helperText={formErrors.correo} />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseDialog} disabled={dialogLoading}>Cancelar</Button>
+          <Button onClick={handleSaveClient} variant="contained" disabled={dialogLoading || Object.values(formErrors).some(Boolean)}>
+            {dialogLoading ? 'Guardando...' : 'Guardar'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
+}
+
+// El componente layout principal no cambia, sigue siendo correcto.
+export function ClientesPage() {
+  return <Outlet />;
 }

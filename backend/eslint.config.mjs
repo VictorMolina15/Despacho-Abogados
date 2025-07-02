@@ -38,7 +38,7 @@ export default defineConfig([
     rules: {
       // Aquí puedes añadir tus reglas personalizadas para TypeScript en el backend
       // Por ejemplo, para deshabilitar la regla de 'no-explicit-any':
-      // "@typescript-eslint/no-explicit-any": "off",
+      "@typescript-eslint/no-explicit-any": "off",
       // Otras reglas útiles para Node.js:
       "no-console": "warn", // Advierte sobre console.log en producción
       "no-unused-vars": "off", // Desactiva la de ESLint base para que funcione la de TS
