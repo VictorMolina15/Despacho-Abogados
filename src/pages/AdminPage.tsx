@@ -42,7 +42,7 @@ export function AdminPage() {
   const [formErrors, setFormErrors] = useState<FormErrors>({});
 
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize] = useState(5); // Cantidad de usuarios por página
+  const [pageSize] = useState(3); // Cantidad de usuarios por página
   const [totalCount, setTotalCount] = useState(0);
 
   const fetchUsers = async (page: number, search: string) => {

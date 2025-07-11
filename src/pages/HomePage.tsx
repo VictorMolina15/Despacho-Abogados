@@ -5,7 +5,7 @@ import type { Cliente } from '../types'; // Importamos el tipo Cliente
 
 // Definimos tipos explícitos para los datos que esperamos del backend
 type ExpedientePorTipo = {
-  tipo: string;
+  nombre: string | null | undefined;
   count: number;
 };
 
@@ -91,7 +91,12 @@ export function HomePage() {
             <Typography variant="h6" sx={{ mb: 1 }}>Expedientes por Tipo</Typography>
             {stats.expedientesPorTipo.length > 0 ? (
               stats.expedientesPorTipo.map((item) => (
-                <Typography key={item.tipo} variant="body1">{item.tipo}: {item.count}</Typography>
+                <Typography key={item.nombre} variant="body1">
+                  {item.nombre}:{' '}
+                  <Typography component="span" color="primary" variant="body1" sx={{ fontWeight: 500 }}>
+                  {item.count}
+                  </Typography>
+                </Typography>
               ))
             ) : (
               <Typography variant="body2" color="text.secondary">No hay expedientes registrados.</Typography>

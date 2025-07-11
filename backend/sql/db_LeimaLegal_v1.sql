@@ -30,13 +30,14 @@ CREATE TABLE Cliente (
 CREATE TABLE Expediente (
     id INT AUTO_INCREMENT PRIMARY KEY,
     cliente_id INT NOT NULL, -- Clave foránea para enlazar con la tabla Clientes
-    tipo ENUM('Divorcio', 'Mercantil', 'Penal') NOT NULL, -- Tipos de expedientes iniciales
+    tipo_id INT NOT NULL, -- Tipos de expedientes iniciales
     numero_expediente VARCHAR(150), -- Número completo del expediente (ej. "254/2023 juzgado...")
     estado VARCHAR(50) DEFAULT 'En Trámite', -- Estado actual del expediente (se puede hacer ENUM si los estados son fijos)
     fecha_apertura TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Fecha de apertura del caso
     fecha_cierre TIMESTAMP NULL, -- Fecha de cierre del caso (puede ser nula si el caso está abierto)
     descripcion TEXT, -- Descripción general del expediente
-    FOREIGN KEY (cliente_id) REFERENCES Cliente(id) -- Define la relación 1:N con Clientes
+    FOREIGN KEY (cliente_id) REFERENCES Cliente(id), -- Define la relación 1:N con Clientes
+    FOREIGN KEY (tipo_id) REFERENCES Tipo_Expediente(id)
 );
 
 -- 4. Tabla de Documentos Generales (Formatos)
@@ -60,4 +61,12 @@ CREATE TABLE Historial_Cliente (
     detalle_cambio TEXT NOT NULL, -- Descripción textual del cambio realizado (ej. "Teléfono actualizado")
     FOREIGN KEY (cliente_id) REFERENCES Cliente(id), -- Define la relación 1:N con Clientes
     FOREIGN KEY (usuario_cambio_id) REFERENCES Usuario(id) -- Define la relación 1:N con Usuarios
+);
+
+-- 6. Tabla de Tipos de Expediente
+-- Almacena los diferentes tipos de casos para que sean dinámicos.
+CREATE TABLE Tipo_Expediente (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL UNIQUE, -- El nombre del tipo debe ser único
+    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

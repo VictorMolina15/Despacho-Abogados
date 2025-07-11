@@ -4,6 +4,8 @@ import dotenv from 'dotenv';
 import mysql, { RowDataPacket, ResultSetHeader } from 'mysql2/promise'; // Importa RowDataPacket y ResultSetHeader
 import bcrypt from 'bcryptjs';
 import jwt, { JwtPayload } from 'jsonwebtoken'; // Importa JwtPayload
+import { S3Client, PutObjectCommand, DeleteObjectsCommand } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import cors from 'cors';
 
 
@@ -57,53 +59,6 @@ interface DbCliente extends RowDataPacket {
   fecha_creacion: Date; // O Date | string
 }
 
-// 6. Interfaz para el cuerpo de la solicitud de Login
-interface LoginRequestBody {
-  correo: string;
-  contrasena: string;
-}
-
-// 7. Interfaz para el cuerpo de la solicitud de creación de Usuario
-interface CreateUserRequestBody {
-  nombres: string;
-  apellidos: string;
-  telefono?: string;
-  correo: string;
-  contrasena: string; // Contraseña en texto plano para el hash
-  rol: UserRole;
-}
-
-// 8. Interfaz para la respuesta de APIs paginadas
-// interface PaginatedResponse<T> {
-//   data: T[];
-//   totalCount: number;
-//   currentPage: number;
-//   pageSize: number;
-// }
-
-// 9. Interfaz para la respuesta de error genérica
-interface ErrorMessageResponse {
-  message: string;
-}
-
-// 10. Interfaz para la respuesta de éxito del Login
-interface LoginSuccessResponse {
-  message: string;
-  token: string;
-  userRole: UserRole;
-}
-
-// Interfaz para la respuesta exitosa de eliminación
-interface DeleteUserSuccessResponse {
-  message: string;
-}
-
-// Interfaz para la respuesta exitosa de creación de usuario
-interface CreateUserSuccessResponse {
-  message: string;
-  userId: number;
-}
-
 // Configuración de la base de datos
 const dbConfig = {
   host: process.env.DB_HOST || 'localhost',
@@ -129,6 +84,18 @@ async function connectToDatabase(): Promise<mysql.Connection> { // Tipado de ret
     process.exit(1);
   }
 }
+
+
+// --- Configuración del Cliente S3 ---
+const s3Client = new S3Client({
+  region: process.env.S3_REGION,
+  endpoint: process.env.S3_ENDPOINT,
+  forcePathStyle: true, // ¡Importante para MinIO!
+  credentials: {
+    accessKeyId: process.env.S3_ACCESS_KEY_ID || '',
+    secretAccessKey: process.env.S3_SECRET_ACCESS_KEY || ''
+  }
+});
 
 // Middleware para verificar la autenticación y el rol
 const authenticateToken = (req: AugmentedRequest, res: Response, next: NextFunction) => {
@@ -400,6 +367,134 @@ app.get('/api/dashboard-stats', authenticateToken, async (req, res) => {
     } catch (error) {
         console.error('Error al obtener estadísticas del dashboard:', error); // eslint-disable-line no-console
         res.status(500).json({ message: 'Error interno del servidor.' });
+    }
+});
+
+// Ruta para generar una URL pre-firmada para subir un archivo
+app.post('/api/expedientes/generate-upload-url', authenticateToken, async (req, res) => {
+  const { fileName, fileType } = req.body;
+  
+  if (!fileName || !fileType) {
+    return res.status(400).json({ message: 'fileName y fileType son requeridos.' });
+  }
+
+  const fileKey = `expedientes/${Date.now()}_${fileName}`;
+
+  const command = new PutObjectCommand({
+    Bucket: process.env.S3_BUCKET_NAME,
+    Key: fileKey,
+    ContentType: fileType,
+  });
+
+  try {
+    const uploadURL = await getSignedUrl(s3Client, command, { expiresIn: 3600 }); // URL válida por 1 hora
+    res.json({ uploadURL, fileKey });
+  } catch (error) {
+    console.error('Error generando URL pre-firmada:', error); // eslint-disable-line no-console
+    res.status(500).json({ message: 'No se pudo generar la URL de subida.' });
+  }
+});
+
+// OBTENER todos los expedientes de un cliente específico
+app.get('/api/clientes/:clienteId/expedientes', authenticateToken, async (req, res) => {
+    const { clienteId } = req.params;
+    try {
+        // Asumimos un SP que obtiene los expedientes por cliente
+        const [expedientes] = await connection.query('CALL sp_GetExpedientesByCliente(?)', [clienteId]);
+        res.json((expedientes as any)[0]);
+    } catch (error) {
+        console.error('Error al obtener expedientes:', error); // eslint-disable-line no-console
+        res.status(500).json({ message: 'Error interno del servidor.' });
+    }
+});
+
+// CREAR un nuevo expediente (con documentos)
+app.post('/api/expedientes', authenticateToken, async (req, res) => {
+    const { cliente_id, tipo, numero_expediente, estado, descripcion, documentos } = req.body;
+    const usuario_id = (req as AugmentedRequest).user?.id; // Obtenemos el ID del usuario logueado
+
+    if (!cliente_id || !tipo || !numero_expediente || !estado || !usuario_id) {
+        return res.status(400).json({ message: 'Faltan campos requeridos.' });
+    }
+
+    try {
+        // Llamamos a un nuevo Stored Procedure que manejará la transacción
+        const [result] = await connection.query<any>(
+            'CALL sp_CreateExpedienteConDocumentos(?, ?, ?, ?, ?, ?, ?)',
+            [cliente_id, tipo, numero_expediente, estado, descripcion, usuario_id, JSON.stringify(documentos)]
+        );
+
+        res.status(201).json({ message: 'Expediente creado exitosamente.', expedienteId: result[0][0].expedienteId });
+
+    } catch (error) {
+        console.error('Error al crear expediente:', error); // eslint-disable-line no-console
+        res.status(500).json({ message: 'Error interno del servidor.' });
+    }
+});
+
+// OBTENER todos los tipos de expediente
+app.get('/api/tipos-expediente', authenticateToken, async (req, res) => {
+    try {
+        const [tipos] = await connection.query('CALL sp_GetTiposExpediente()');
+        res.json((tipos as any)[0]);
+    } catch (error) {
+        console.error('Error al obtener tipos de expediente:', error); // eslint-disable-line no-console
+        res.status(500).json({ message: 'Error interno del servidor.' });
+    }
+});
+
+// ACTUALIZAR un expediente existente
+app.put('/api/expedientes/:id', authenticateToken, async (req, res) => {
+    const { id } = req.params;
+    // Extraemos el array de nuevos documentos del cuerpo de la petición
+    const { tipo, numero_expediente, estado, descripcion, documentos } = req.body;
+    const usuario_id = (req as AugmentedRequest).user?.id;
+
+    if (!id || !tipo || !numero_expediente || !estado || !usuario_id) {
+        return res.status(400).json({ message: 'Faltan campos requeridos.' });
+    }
+
+    try {
+        // Llamamos al nuevo SP y le pasamos los nuevos documentos como un string JSON
+        await connection.query(
+            'CALL sp_UpdateExpedienteAndAddDocuments(?, ?, ?, ?, ?, ?, ?)',
+            [id, tipo, numero_expediente, estado, descripcion, usuario_id, JSON.stringify(documentos || [])]
+        );
+        res.json({ message: 'Expediente actualizado exitosamente.' });
+    } catch (error) {
+        console.error('Error al actualizar expediente:', error); // eslint-disable-line no-console
+        res.status(500).json({ message: 'Error interno del servidor.' });
+    }
+});
+
+// ELIMINAR un expediente y sus archivos asociados en S3/MinIO
+app.delete('/api/expedientes/:id', authenticateToken, async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        // 1. Llamar al SP para borrar en la DB y obtener las llaves de los archivos
+        const [results] = await connection.query<any>('CALL sp_DeleteExpedienteAndGetKeys(?)', [id]);
+        const filesToDelete = results[0];
+
+        // 2. Si hay archivos asociados, borrarlos del bucket
+        if (filesToDelete && filesToDelete.length > 0) {
+            const deleteParams = {
+                Bucket: process.env.S3_BUCKET_NAME,
+                Delete: {
+                    Objects: filesToDelete.map((file: { storage_key: string }) => ({ Key: file.storage_key }))
+                }
+            };
+
+            // Creamos y enviamos el comando para borrar múltiples objetos
+            const deleteCommand = new DeleteObjectsCommand(deleteParams);
+            await s3Client.send(deleteCommand);
+        }
+
+        res.json({ message: 'Expediente y documentos asociados eliminados exitosamente.' });
+
+    } catch (error) {
+        console.error('Error al eliminar expediente:', error); // eslint-disable-line no-console
+        res.status(500).json({ message: 'Error interno del servidor al eliminar.' });
     }
 });
 

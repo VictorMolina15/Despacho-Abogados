@@ -1,5 +1,5 @@
 // src/themeContext.tsx
-import { createContext, useMemo, useState, useContext, type ReactNode } from 'react';
+import { createContext, useMemo, useState, useContext, type ReactNode, useEffect } from 'react';
 import { createTheme, ThemeProvider as MuiThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 
@@ -28,7 +28,21 @@ interface ThemeProviderProps {
 }
 
 export function ThemeProvider({ children }: ThemeProviderProps) {
-  const [mode, setMode] = useState<'light' | 'dark'>('light'); // Estado para el modo actual
+   const [mode, setMode] = useState<'light' | 'dark'>(() => {
+    try {
+      const savedMode = localStorage.getItem('themeMode');
+      // Si existe un modo guardado y es válido, lo usamos. Si no, 'light' por defecto.
+      return savedMode === 'dark' ? 'dark' : 'light';
+    } catch (error) {
+      // Si hay algún error (ej. en SSR o navegadores antiguos), usamos 'light'
+      console.error("No se pudo acceder a LocalStorage para el tema.", error);
+      return 'light';
+    }
+  });
+
+  useEffect(() => {
+    localStorage.setItem('themeMode', mode);
+  }, [mode]);
 
   const colorMode = useMemo(
     () => ({
@@ -116,3 +130,5 @@ export function useThemeContext() {
   }
   return context;
 }
+
+

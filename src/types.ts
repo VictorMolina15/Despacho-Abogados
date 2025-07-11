@@ -1,5 +1,7 @@
 // En un archivo como src/types.ts
 
+import type { ReactNode } from "react";
+
 export interface Usuario {
   id: string; // O number, si tu API lo maneja así
   nombres: string;
@@ -11,6 +13,8 @@ export interface Usuario {
 }
 
 export interface Cliente {
+  apellidos: string | undefined;
+  nombres: string | undefined;
   id: string;
   nombreCompleto: string;
   telefono: string;
@@ -18,16 +22,18 @@ export interface Cliente {
   fechaCreacion: Date; // Añadido para el detalle
 }
 
-export interface Expediente {
+export type Expediente = {
   id: string;
   clienteId: string;
-  tipo: 'Divorcio' | 'Mercantil' | 'Penal'; // Usar uniones de tipos es muy potente
-  // Considera añadir un campo para el "numero de expediente" completo, ej:
-  // numeroCompleto: string; // "254/2023 juzgado 2 familiar oral mty-juicio alimentos"
+  tipo: string;
+  numero_expediente?: string;
+  estado?: string;
+  descripcion?: string;
   documentos: Documento[];
-}
+};
 
 export interface Documento {
+  nombre_original: ReactNode;
   id: string;
   nombre: string;
   urlDescarga: string;
