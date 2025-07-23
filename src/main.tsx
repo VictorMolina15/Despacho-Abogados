@@ -14,20 +14,23 @@ import { HomePage } from './pages/HomePage'; // Importa la página de inicio
 import { AdminPage } from './pages/AdminPage';
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { RoleGuard } from './components/RoleGuard'
+import { ErrorPage } from './pages/ErrorPage'; // Importa la página de error
 
 
 const router = createBrowserRouter([
   {
     path: '/login',
     element: <LoginPage />,
+    errorElement: <ErrorPage />,
   },
   {
     path: '/',
     element: <ProtectedRoute />, // El guardián protege a todas sus rutas hijas.
+    errorElement: <ErrorPage />, // Página de error para rutas protegidas
     children: [
       {
         path: '/', // Esta será la ruta principal (dashboard)
-        element: <AppLayout />, // Usa el layout para estas rutas
+        element: <AppLayout />, // Usa el layout para estas rutas    
         children: [
           {
             // --- Rutas para Admin y Usuario ---

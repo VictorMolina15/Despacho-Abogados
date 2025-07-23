@@ -2,9 +2,10 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  Box, Typography, TextField, Button, Paper, List, ListItem, ListItemText,
+  Box, Typography, TextField, Button, Paper, List, ListItemText,
   Divider, Container, IconButton, CircularProgress, Alert,
   Dialog, DialogActions, DialogContent, DialogTitle, Autocomplete, Chip,
+  ListItemButton,
 } from '@mui/material';
 import SaveIcon from '@mui/icons-material/Save';
 import CancelIcon from '@mui/icons-material/Cancel';
@@ -13,12 +14,14 @@ import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
 import AttachFileIcon from '@mui/icons-material/AttachFile';
-import type { Cliente, Expediente } from '../types';
+import DownloadIcon from '@mui/icons-material/Download';
+import type { Cliente, Documento, Expediente } from '../types';
 
 // Tipos de datos para los formularios
 type ClientFormData = { nombres: string; apellidos: string; telefono: string; correo: string; };
 type ClientFormErrors = Partial<ClientFormData>;
 type ExpedienteFormErrors = { tipo?: string; numero_expediente?: string; estado?: string; };
+type PreviewableFile = File | Documento;
 
 export function ClienteDetailPage() {
   const { clienteId } = useParams<{ clienteId: string }>();
@@ -42,6 +45,13 @@ export function ClienteDetailPage() {
   const [expedienteFormErrors, setExpedienteFormErrors] = useState<ExpedienteFormErrors>({});
   const [tiposExpediente, setTiposExpediente] = useState<string[]>([]);
   const [filesToUpload, setFilesToUpload] = useState<File[]>([]);
+
+  // Estados para el diálogo de previsualización 
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [fileToPreview, setFileToPreview] = useState<PreviewableFile | null>(null);
+  const [previewContent, setPreviewContent] = useState<string | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewDownloadUrl, setPreviewDownloadUrl] = useState<string | null>(null);
 
   // --- Carga de Datos ---
   const fetchClienteData = async () => {
@@ -213,11 +223,101 @@ export function ClienteDetailPage() {
   };
 
   const handleFileSelected = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (event.target.files) setFilesToUpload(prev => [...prev, ...Array.from(event.target.files as FileList)]);
+    if (!event.target.files) return;
+
+    const selectedFiles = Array.from(event.target.files);
+    const validFiles: File[] = [];
+    const errors: string[] = [];
+
+    // --- Límites y tipos permitidos ---
+    const MAX_SIZE = 2 * 1024 * 1024; // 2MB
+    const ALLOWED_TYPES = [
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'text/plain'
+    ];
+
+    selectedFiles.forEach(file => {
+      if (!ALLOWED_TYPES.includes(file.type)) {
+        errors.push(`El archivo "${file.name}" tiene un formato no permitido. Solo se aceptan PDF, Word y TXT.`);
+      } else if (file.size > MAX_SIZE) {
+        errors.push(`El archivo "${file.name}" supera el límite de 2MB.`);
+      } else {
+        validFiles.push(file);
+      }
+    });
+
+    if (errors.length > 0) {
+      alert(errors.join('\n')); // Muestra todos los errores encontrados
+    }
+
+    setFilesToUpload(prev => [...prev, ...validFiles]);
   };
 
   const handleRemoveFile = (fileToRemove: File) => {
     setFilesToUpload(prev => prev.filter(file => file !== fileToRemove));
+  };
+
+  const handleOpenPreview = async (file: PreviewableFile) => {
+    setFileToPreview(file);
+    setPreviewOpen(true);
+    setPreviewLoading(true);
+    setPreviewContent(null);
+    setPreviewDownloadUrl(null);
+    setApiError(null);
+
+    try {
+      const fileName = ('name' in file) ? file.name : file.nombre_original as string;
+      const isTxt = fileName.toLowerCase().endsWith('.txt');
+      const isPdf = fileName.toLowerCase().endsWith('.pdf');
+
+      // Caso 1: Es un documento existente en el bucket
+      if ('storage_key' in file && file.storage_key) {
+        const token = localStorage.getItem('authToken');
+        const response = await fetch('http://localhost:3000/api/documentos/generate-download-url', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ fileKey: file.storage_key })
+        });
+        if (!response.ok) throw new Error('No se pudo obtener la URL de visualización.');
+        const { downloadURL } = await response.json();
+        
+        setPreviewDownloadUrl(downloadURL); // Guardamos la URL para el botón de descarga
+
+        if (isTxt) {
+           const txtResponse = await fetch(downloadURL);
+           setPreviewContent(await txtResponse.text());
+        } else if (isPdf) {
+           setPreviewContent(downloadURL); // Para el iframe, usamos la misma URL
+        }
+
+      // Caso 2: Es un archivo nuevo (File)
+      } else if (file instanceof File) {
+        const objectUrl = URL.createObjectURL(file);
+        setPreviewDownloadUrl(objectUrl); // La URL del objeto sirve para descargar
+
+        if (file.type === 'application/pdf') {
+          setPreviewContent(objectUrl);
+        } else if (file.type === 'text/plain') {
+          setPreviewContent(await file.text());
+        }
+      }
+    } catch (err) {
+       setApiError(err instanceof Error ? err.message : 'Error al cargar la previsualización.');
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
+  const handleClosePreview = () => {
+    if (previewContent && previewContent.startsWith('blob:')) {
+      URL.revokeObjectURL(previewContent);
+    }
+    setPreviewOpen(false);
+    setFileToPreview(null);
+    setPreviewContent(null);
+    setPreviewDownloadUrl(null);
   };
 
   const handleSaveExpediente = async () => {
@@ -283,6 +383,47 @@ export function ClienteDetailPage() {
   if (apiError && !openExpedienteDialog) return <Container sx={{ p: 5 }}><Alert severity="error" onClose={() => setApiError(null)}>{apiError}</Alert></Container>;
   if (!cliente || !editedCliente) return <Container sx={{ p: 5 }}><Alert severity="info">No se encontró información del cliente.</Alert></Container>;
 
+  const renderPreview = () => {
+    if (previewLoading) return <Box sx={{ p: 5, textAlign: 'center' }}><CircularProgress /></Box>;
+    if (apiError) return <Alert severity="error">{apiError}</Alert>;
+    if (!fileToPreview) return null;
+
+    const fileName = ('name' in fileToPreview) ? fileToPreview.name : fileToPreview.nombre_original as string;
+
+    if (previewContent) {
+      if (fileName.toLowerCase().endsWith('.pdf')) {
+        return <iframe src={previewContent} style={{ width: '100%', height: '70vh', border: 'none' }} title={fileName} />;
+      }
+      if (fileName.toLowerCase().endsWith('.txt')) {
+        return <Paper variant="outlined" sx={{ p: 2, maxHeight: '70vh', overflowY: 'auto', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>{previewContent}</Paper>;
+      }
+    }
+
+    return (
+      <Box sx={{ textAlign: 'center', p: 4 }}>
+        <Typography variant="h6">Vista previa no disponible</Typography>
+        <Typography>
+          El archivo "{fileName}" es un documento de Word o de un tipo no soportado para previsualización directa.
+        </Typography>
+        {previewDownloadUrl && (
+          <Button
+            variant="contained"
+            startIcon={<DownloadIcon />}
+            href={previewDownloadUrl}
+            target="_blank"
+            rel="noopener"
+            sx={{ mt: 2 }}
+            download={fileName}
+          >
+            Descargar archivo
+          </Button>
+        )}
+      </Box>
+    );
+  };
+
+  const fileName = fileToPreview ? ('name' in fileToPreview ? fileToPreview.name : fileToPreview.nombre_original as string) : '';
+
   return (
     <Container maxWidth="md" sx={{ mt: 4 }}>
       <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
@@ -324,12 +465,15 @@ export function ClienteDetailPage() {
           <List>
             {expedientesDelCliente.map((exp) => (
               <React.Fragment key={exp.id}>
-                <ListItem
-                  secondaryAction={
-                    <Box><IconButton onClick={() => handleOpenEditExpediente(exp)}><EditIcon /></IconButton><IconButton onClick={() => handleDeleteExpediente(exp.id)}><DeleteIcon /></IconButton></Box>
-                  }>
-                  <ListItemText primary={`Expediente: ${exp.numero_expediente}`} secondary={`Tipo: ${exp.tipo} | Estado: ${exp.estado}`} />
-                </ListItem>
+                <ListItemButton onClick={() => handleOpenEditExpediente(exp)} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }} >
+                  <ListItemText
+                    primary={`Expediente: ${exp.numero_expediente}`}
+                    secondary={`Tipo: ${exp.tipo} | Estado: ${exp.estado}`}
+                  />
+                  <IconButton edge="end" onClick={e => { e.stopPropagation(); handleDeleteExpediente(exp.id); }} aria-label="delete">
+                    <DeleteIcon />
+                  </IconButton>
+                </ListItemButton>
                 <Divider />
               </React.Fragment>
             ))}
@@ -351,21 +495,64 @@ export function ClienteDetailPage() {
           <TextField name="numero_expediente" label="Número de Expediente" fullWidth required margin="normal" value={currentExpediente?.numero_expediente || ''} onChange={(e) => setCurrentExpediente(p => p ? { ...p, numero_expediente: e.target.value } : null)} error={!!expedienteFormErrors.numero_expediente} helperText={expedienteFormErrors.numero_expediente} />
           <TextField name="estado" label="Estado" fullWidth required margin="normal" value={currentExpediente?.estado || ''} onChange={(e) => setCurrentExpediente(p => p ? { ...p, estado: e.target.value } : null)} error={!!expedienteFormErrors.estado} helperText={expedienteFormErrors.estado} />
           <TextField name="descripcion" label="Descripción" fullWidth multiline rows={4} margin="normal" value={currentExpediente?.descripcion || ''} onChange={(e) => setCurrentExpediente(p => p ? { ...p, descripcion: e.target.value } : null)} />
-          <Box sx={{ mt: 2 }}><Button variant="outlined" component="label" fullWidth startIcon={<AttachFileIcon />}>Adjuntar Documentos<input type="file" hidden multiple onChange={handleFileSelected} /></Button></Box>
-          {filesToUpload.length > 0 && <Box sx={{ my: 2 }}><Typography variant="subtitle2">Nuevos archivos:</Typography>{filesToUpload.map((file, i) => (<Chip key={i} label={file.name} onDelete={() => handleRemoveFile(file)} sx={{ mr: 1, mt: 1 }} />))}</Box>}
+
+          <Box sx={{ my: 2 }}>
+            <Button variant="outlined" component="label" fullWidth startIcon={<AttachFileIcon />}>
+              Adjuntar Documentos (PDF, Word, TXT)
+              <input type="file" hidden multiple onChange={handleFileSelected} accept='.pdf,.doc,.docx,.txt' />
+            </Button>
+          </Box>
+
+          {filesToUpload.length > 0 && (
+            <Box sx={{ my: 2 }}>
+              <Typography variant="subtitle2">Nuevos archivos:</Typography>
+              {filesToUpload.map((file, i) => (
+                <Chip key={i} label={file.name} onDelete={() => handleRemoveFile(file)} onClick={() => handleOpenPreview(file)} sx={{ mr: 1, mt: 1 }} />
+              ))}
+            </Box>
+          )}
+
           {!isNewExpediente && Array.isArray(currentExpediente?.documentos) && currentExpediente.documentos.length > 0 && (
             <Box sx={{ my: 2 }}>
               <Typography variant="subtitle2">Documentos existentes:</Typography>
               {currentExpediente.documentos.map((doc) => (
-                <Chip key={doc.id} label={doc.nombre_original} component="a" href={`#`} clickable sx={{ mr: 1, mt: 1 }} />
+                <Chip key={doc.id} label={doc.nombre_original} component="a" onClick={() => handleOpenPreview(doc)} clickable sx={{ mr: 1, mt: 1 }} />
               ))}
             </Box>
           )}
+
         </DialogContent>
-        <DialogActions sx={{ p: '16px 24px' }}><Button onClick={handleCloseExpedienteDialog} disabled={formLoading}>Cancelar</Button>
+        <DialogActions sx={{ p: '16px 24px' }}>
+          <Button onClick={handleCloseExpedienteDialog} disabled={formLoading}>Cancelar</Button>
           <Button onClick={handleSaveExpediente} variant="contained" disabled={formLoading}>{formLoading ? 'Guardando...' : 'Guardar'}</Button>
         </DialogActions>
       </Dialog>
+
+      <Dialog open={previewOpen} onClose={handleClosePreview} fullWidth maxWidth="lg">
+        <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          Vista Previa: {fileName}
+          {previewDownloadUrl && (fileName.toLowerCase().endsWith('.pdf') || fileName.toLowerCase().endsWith('.txt')) && (
+            <Button
+              variant="outlined"
+              component="a"
+              href={previewDownloadUrl}
+              target="_blank"
+              rel="noopener"
+              download={fileName}
+              startIcon={<DownloadIcon />}
+            >
+              Descargar
+            </Button>
+          )}
+        </DialogTitle>
+        <DialogContent>
+          {previewLoading ? <CircularProgress /> : renderPreview()}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleClosePreview} sx={{ mx: 2, my:  1}}>Cerrar</Button>
+        </DialogActions>
+      </Dialog>
+
     </Container>
   );
 }

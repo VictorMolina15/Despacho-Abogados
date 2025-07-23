@@ -170,7 +170,7 @@ END$$
 DELIMITER ;
 
 DELIMITER $$
--- Obtener todas las estadísticas del Dashboard ( experimental)
+-- Modificar el SP existente
 CREATE PROCEDURE sp_GetDashboardStats()
 BEGIN
     -- 1. Total de Clientes
@@ -180,7 +180,7 @@ BEGIN
     SELECT COUNT(*) as totalExpedientes FROM Expediente;
 
     -- 3. Conteo de Expedientes por tipo
-    SELECT te.nombre, COUNT(*) as count FROM Expediente e
+    SELECT te.nombre, COUNT(e.id) as count FROM Expediente e
     JOIN Tipo_Expediente te ON e.tipo_id = te.id
     GROUP BY te.nombre;
 
@@ -188,9 +188,25 @@ BEGIN
     SELECT id, nombres, apellidos, fecha_creacion 
     FROM Cliente 
     ORDER BY fecha_creacion DESC 
+    LIMIT 4;
+    
+    -- 5. NUEVO: Conteo de Expedientes por estado
+    SELECT estado, COUNT(id) as count 
+    FROM Expediente 
+    GROUP BY estado;
+    
+    -- 6. NUEVO: Últimos 3 expedientes abiertos
+    SELECT 
+        e.id, 
+        e.numero_expediente, 
+        e.fecha_apertura,
+        CONCAT(c.nombres, ' ', c.apellidos) as nombre_cliente
+    FROM Expediente e
+    JOIN Cliente c ON e.cliente_id = c.id
+    ORDER BY e.fecha_apertura DESC 
     LIMIT 3;
-END$$
 
+END$$
 DELIMITER ;
 
 DELIMITER $$

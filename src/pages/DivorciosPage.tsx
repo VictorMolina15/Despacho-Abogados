@@ -95,7 +95,7 @@ export function DivorciosPage() {
               {/* Añade más requisitos aquí */}
             </List>
             <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-              *Esta lista es de carácter informativo. Se confirmará la documentación exacta durante la consulta inicial.
+              * lista es de carácter informativo.
             </Typography>
           </Paper>
         </Grid>

@@ -180,7 +180,7 @@ export function ClientListPage() {
     <Container maxWidth="md">
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', my: 4 }}>
         <Typography variant="h4" component="h1">Listado de Clientes</Typography>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={handleOpenDialog}>
+        <Button variant="contained" sx={{ whiteSpace: 'nowrap' }} startIcon={<AddIcon />} onClick={handleOpenDialog}>
           Añadir Cliente
         </Button>
       </Box>

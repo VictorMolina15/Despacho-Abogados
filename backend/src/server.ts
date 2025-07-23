@@ -1,10 +1,10 @@
 // src/server.ts
-import express, { Request, Response, NextFunction } from 'express'; // Importa Request, Response, NextFunction
+import express, { Request, Response, NextFunction } from 'express';
 import dotenv from 'dotenv';
-import mysql, { RowDataPacket, ResultSetHeader } from 'mysql2/promise'; // Importa RowDataPacket y ResultSetHeader
+import mysql, { RowDataPacket } from 'mysql2/promise';
 import bcrypt from 'bcryptjs';
-import jwt, { JwtPayload } from 'jsonwebtoken'; // Importa JwtPayload
-import { S3Client, PutObjectCommand, DeleteObjectsCommand } from "@aws-sdk/client-s3";
+import jwt, { JwtPayload } from 'jsonwebtoken'; 
+import { S3Client, PutObjectCommand, DeleteObjectsCommand,  GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import cors from 'cors';
 
@@ -49,7 +49,7 @@ interface UserJWTPayload extends JwtPayload {
 }
 
 
-// 5. Interfaz para los datos del Cliente tal como vienen de la DB
+// 4. Interfaz para los datos del Cliente tal como vienen de la DB
 interface DbCliente extends RowDataPacket {
   id: number;
   nombres: string;
@@ -180,7 +180,7 @@ app.post('/api/login', async (req, res) => {
         const isMatch = await bcrypt.compare(contrasena, user.contrasena_hash);
         if (!isMatch) return res.status(401).json({ message: 'Credenciales inválidas.' });
 
-        const token = jwt.sign({ id: user.id, correo: user.correo, rol: user.rol }, process.env.JWT_SECRET as string, { expiresIn: '7d' });
+        const token = jwt.sign({ id: user.id, correo: user.correo, rol: user.rol }, process.env.JWT_SECRET as string);
         res.json({ message: 'Inicio de sesión exitoso.', token, userRole: user.rol });
     } catch (error) {
         console.error('Error en el login:', error); // eslint-disable-line no-console
@@ -359,7 +359,9 @@ app.get('/api/dashboard-stats', authenticateToken, async (req, res) => {
             totalClientes: (results as any)[0][0].totalClientes,
             totalExpedientes: (results as any)[1][0].totalExpedientes,
             expedientesPorTipo: (results as any)[2],
-            ultimosClientes: (results as any)[3]
+            ultimosClientes: (results as any)[3],
+            expedientesPorEstado: (results as any)[4],
+            ultimosExpedientes: (results as any)[5]
         };
         
         res.json(stats);
@@ -465,6 +467,29 @@ app.put('/api/expedientes/:id', authenticateToken, async (req, res) => {
         console.error('Error al actualizar expediente:', error); // eslint-disable-line no-console
         res.status(500).json({ message: 'Error interno del servidor.' });
     }
+});
+
+// Ruta para generar una URL pre-firmada para DESCARGAR/VER un archivo
+app.post('/api/documentos/generate-download-url', authenticateToken, async (req, res) => {
+  const { fileKey } = req.body; // Recibimos el 'storage_key' del documento
+
+  if (!fileKey) {
+    return res.status(400).json({ message: 'El fileKey es requerido.' });
+  }
+
+  const command = new GetObjectCommand({
+    Bucket: process.env.S3_BUCKET_NAME,
+    Key: fileKey,
+  });
+
+  try {
+    // Genera una URL que expira en 1 hora (3600). 
+    const downloadURL = await getSignedUrl(s3Client, command, { expiresIn: 3600 }); 
+    res.json({ downloadURL });
+  } catch (error) {
+    console.error('Error generando URL de descarga pre-firmada:', error); // eslint-disable-line no-console
+    res.status(500).json({ message: 'No se pudo generar la URL de descarga.' });
+  }
 });
 
 // ELIMINAR un expediente y sus archivos asociados en S3/MinIO
