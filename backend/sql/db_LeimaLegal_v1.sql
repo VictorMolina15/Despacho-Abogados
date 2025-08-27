@@ -70,3 +70,23 @@ CREATE TABLE Tipo_Expediente (
     nombre VARCHAR(100) NOT NULL UNIQUE, -- El nombre del tipo debe ser único
     fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- 7. Tabla para Tokens de Restablecimiento de Contraseña
+CREATE TABLE PasswordResetToken (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    token_hash VARCHAR(255) NOT NULL,
+    fecha_expiracion TIMESTAMP NOT NULL,
+    utilizado BOOLEAN DEFAULT FALSE,
+    FOREIGN KEY (user_id) REFERENCES Usuario(id) ON DELETE CASCADE
+);
+
+-- 8. Tabla de Historial de Acciones (Auditoría de Tareas)
+CREATE TABLE Historial_Acciones (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    id_usuario INT NOT NULL,
+    id_tarjeta_trello VARCHAR(255) NOT NULL,
+    accion_realizada VARCHAR(255) NOT NULL,
+    fecha_accion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (id_usuario) REFERENCES Usuario(id)
+);

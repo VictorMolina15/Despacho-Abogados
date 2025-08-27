@@ -26,6 +26,7 @@ import { useThemeContext } from '../ThemeContext';
 import { Outlet, useNavigate, useLocation, useMatch } from 'react-router-dom'; // Outlet para renderizar rutas hijas
 import { decodeJwt } from '../utils/auth';
 import { VisibilityOff, Visibility } from '@mui/icons-material';
+import { Chatbot } from './Chatbot';
 
 type UserRole = 'SuperAdmin' | 'Admin' | 'Usuario';
 type UserProfileData = { nombres: string; apellidos: string; telefono: string; correo: string; contrasena: string; };
@@ -54,6 +55,7 @@ export function AppLayout() {
     nombres: '', apellidos: '', telefono: '', correo: '', contrasena: '',
   });
 
+
   const [showPassword, setShowPassword] = useState(false);
   const [formErrors, setFormErrors] = useState<FormErrors>({});
 
@@ -66,6 +68,7 @@ export function AppLayout() {
   // Función para determinar si un enlace está activo
   const isClientesActive = useMatch('/clientes/*');
   const isActive = (path: string) => location.pathname === path;
+  const isCitasActive = useMatch('/citas/*');
 
   const handleMenu = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -93,7 +96,7 @@ export function AppLayout() {
     if (!token || !decoded) return;
 
     try {
-      const response = await fetch(`http://localhost:3000/api/usuarios/${decoded.id}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/usuarios/${decoded.id}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (!response.ok) throw new Error('No se pudo cargar tu perfil.');
@@ -205,7 +208,7 @@ export function AppLayout() {
     }
 
     try {
-      const response = await fetch(`http://localhost:3000/api/usuarios/${decoded.id}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/usuarios/${decoded.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -233,7 +236,7 @@ export function AppLayout() {
   };
 
   return (
-    <Box sx={{ flexGrow: 1 }}>
+    <Box sx={{ flexGrow: 1}}>
       <AppBar position="static" elevation={0} color='transparent' sx={{ backgroundColor: theme.palette.toolbar.main }}>
         <Toolbar sx={{ borderBottom: `1px solid ${theme.palette.divider}` }}>
           <Typography
@@ -262,6 +265,14 @@ export function AppLayout() {
                 borderBottom: isClientesActive ? `2px solid ${theme.palette.primary.main}` : 'none',
               }} >
                 Clientes
+              </Button>
+              <Button 
+                color={isCitasActive ? 'primary' : 'inherit'}  onClick={() => navigate('/citas')} sx={{
+                  borderRadius: '0', p: '30px 15px', fontSize: '18px',
+                  borderBottom: isCitasActive ? `2px solid ${theme.palette.primary.main}` : 'none',
+                }}
+              >
+                Citas
               </Button>
               <Button color={isActive('/divorcios') ? 'primary' : 'inherit'} onClick={() => navigate('/divorcios')} sx={{
                 borderRadius: '0', p: '30px 15px', fontSize: '18px',
@@ -315,6 +326,8 @@ export function AppLayout() {
       <Box component="main" sx={{ p: 1 }}>
         <Outlet /> {/* Aquí se renderizarán las rutas anidadas */}
       </Box>
+      <Chatbot />
+
       <Dialog open={isModalOpen} onClose={handleCloseModal} maxWidth="sm" fullWidth>
         <DialogTitle>Editar Perfil</DialogTitle>
         <DialogContent>

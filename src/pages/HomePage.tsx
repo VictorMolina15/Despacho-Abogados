@@ -1,8 +1,9 @@
 // src/pages/HomePage.tsx
 import { useState, useEffect } from 'react';
-import { Box, Typography, Paper, Grid, CircularProgress, Alert, Container } from '@mui/material';
+import { Box, Typography, Paper, Grid, CircularProgress, Alert, Divider, Container, Card, CardContent } from '@mui/material';
 import { BarChart } from '@mui/x-charts/BarChart';
 import type { Cliente } from '../types'; // Importamos el tipo Cliente
+import React from 'react';
 
 // Definimos tipos explícitos para los datos que esperamos del backend
 type ExpedientePorTipo = {
@@ -33,6 +34,14 @@ type DashboardStats = {
   ultimosClientes: UltimoCliente[];
   expedientesPorEstado: ExpedientePorEstado[];
   ultimosExpedientes: UltimoExpediente[];
+  trelloStats: TrelloStats; 
+};
+
+type TrelloStats = {
+  nuevasSolicitudes: number;
+  confirmadasEstaSemana: number;
+  completadasEsteMes: number;
+  canceladasEsteMes: number;
 };
 
 export function HomePage() {
@@ -46,14 +55,23 @@ export function HomePage() {
       setError(null);
       try {
         const token = localStorage.getItem('authToken');
-        const response = await fetch('http://localhost:3000/api/dashboard-stats', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (!response.ok) {
-          throw new Error('No se pudieron cargar las estadísticas del dashboard.');
-        }
-        const data: DashboardStats = await response.json();
-        setStats(data);
+        const headers = { 'Authorization': `Bearer ${token}` };
+
+        // Hacemos las dos peticiones en paralelo
+        const [dashboardRes, trelloRes] = await Promise.all([
+          fetch(`${import.meta.env.VITE_API_BASE_URL}/api/dashboard-stats`, { headers }),
+          fetch(`${import.meta.env.VITE_API_BASE_URL}/api/trello-stats`, { headers })
+        ]);
+
+        if (!dashboardRes.ok) throw new Error('No se pudieron cargar las estadísticas del dashboard.');
+        if (!trelloRes.ok) throw new Error('No se pudieron cargar las estadísticas de Trello.');
+        
+        const dashboardData = await dashboardRes.json();
+        const trelloData = await trelloRes.json();
+
+        // Combinamos ambas respuestas en el estado
+        setStats({ ...dashboardData, trelloStats: trelloData });
+
       } catch (err: unknown) {
         if (err instanceof Error) {
           setError(err.message);
@@ -86,6 +104,46 @@ export function HomePage() {
         Dashboard del Despacho
       </Typography>
 
+      {/* SECCIÓN DE KPIs DE TRELLO */}
+      
+      <Typography variant="h5" component="h2" sx={{ mb: 2 }}>
+        Resumen de Citas
+      </Typography>
+      <Grid container spacing={3} sx={{ mb: 4}}>
+
+        <Grid sx={{ xs: 12, sm: 6, md: 3 }}>
+          <Card>
+            <CardContent sx={{ textAlign: 'center' }}>
+              <Typography color="text.secondary" gutterBottom>Nuevas Solicitudes</Typography>
+              <Typography variant="h3" component="div" color="primary">{stats?.trelloStats.nuevasSolicitudes ?? 0}</Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid sx={{ xs: 12, sm: 6, md: 3 }}>
+          <Card>
+            <CardContent sx={{ textAlign: 'center' }}>
+              <Typography color="text.secondary" gutterBottom>Confirmadas (Esta Semana)</Typography>
+              <Typography variant="h3" component="div" color="primary">{stats?.trelloStats.confirmadasEstaSemana ?? 0}</Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid sx={{ xs: 12, sm: 6, md: 3 }}>
+          <Card>
+            <CardContent sx={{ textAlign: 'center' }}>
+              <Typography color="text.secondary" gutterBottom>Completadas (Este Mes)</Typography>
+              <Typography variant="h3" component="div" color="primary">{stats?.trelloStats.completadasEsteMes ?? 0}</Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid sx={{ xs: 12, sm:6, md:3 }}>
+          <Card>
+            <CardContent sx={{ textAlign: 'center' }}>
+              <Typography color="text.secondary" gutterBottom>Canceladas (Este Mes)</Typography>
+              <Typography variant="h3" component="div" color="primary">{stats?.trelloStats.canceladasEsteMes ?? 0}</Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
       {/* Contenedor principal del Grid */}
       <Grid container spacing={3}>
 
@@ -151,12 +209,15 @@ export function HomePage() {
                 <Typography variant="h6" sx={{ mb: 2 }}>Últimos Clientes Añadidos</Typography>
                 {stats.ultimosClientes.length > 0 ? (
                   stats.ultimosClientes.map((cliente) => (
-                    <Box key={cliente.id} sx={{ mb: 1, borderTop: '1px solid #eee', pt: 1 }}>
-                      <Typography variant="body1">{`${cliente.nombres} ${cliente.apellidos}`}</Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        Registrado el: {new Date(cliente.fecha_creacion).toLocaleDateString()}
-                      </Typography>
-                    </Box>
+                    <React.Fragment key={cliente.id}>
+                      <Divider />
+                      <Box sx={{ mb: 1, pt: 1 }}>
+                        <Typography variant="body1">{`${cliente.nombres} ${cliente.apellidos}`}</Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          Registrado el: {new Date(cliente.fecha_creacion).toLocaleDateString()}
+                        </Typography>
+                      </Box>
+                    </React.Fragment>
                   ))
                 ) : (
                   <Typography variant="body2" color="text.secondary">No hay clientes recientes.</Typography>
@@ -171,16 +232,19 @@ export function HomePage() {
               <Typography variant="h6" sx={{ mb: 2 }}>Expedientes Recientes</Typography>
               {stats.ultimosExpedientes.length > 0 ? (
                 stats.ultimosExpedientes.map((exp) => (
-                  <Box key={exp.id} sx={{ mb: 1, borderTop: '1px solid #eee', pt: 1 }}>
-                    <Typography variant="body1" sx={{ fontWeight: 500 }}>{exp.numero_expediente}</Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Cliente: {exp.nombre_cliente}
-                    </Typography>
+                  <React.Fragment key={exp.id}>
+                    <Divider sx={{ mb: 1 }} />
+                    <Box sx={{ mb: 1, pt: 1 }}>
+                      <Typography variant="body1" sx={{ fontWeight: 500 }}>{exp.numero_expediente}</Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Cliente: {exp.nombre_cliente}
+                      </Typography>
                     <Typography variant="body2" color="text.secondary">
                       Apertura: {new Date(exp.fecha_apertura).toLocaleDateString()}
                     </Typography>
                   </Box>
-                ))
+                </React.Fragment>
+              ))
               ) : (
                 <Typography variant="body2" color="text.secondary">No hay expedientes recientes.</Typography>
               )}

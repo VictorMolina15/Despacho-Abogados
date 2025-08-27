@@ -49,7 +49,7 @@ export function AdminPage() {
     setLoading(true);
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch(`http://localhost:3000/api/usuarios?page=${page}&pageSize=${pageSize}&searchTerm=${search}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/usuarios?page=${page}&pageSize=${pageSize}&searchTerm=${search}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (!response.ok) throw new Error('Error al cargar usuarios.');
@@ -184,7 +184,7 @@ export function AdminPage() {
 
     const token = localStorage.getItem('authToken');
     const method = isNewUser ? 'POST' : 'PUT';
-    const url = isNewUser ? 'http://localhost:3000/api/usuarios' : `http://localhost:3000/api/usuarios/${currentUser.id}`;
+    const url = isNewUser ? `${import.meta.env.VITE_API_BASE_URL}/api/usuarios` : `${import.meta.env.VITE_API_BASE_URL}/api/usuarios/${currentUser.id}`;
 
     try {
       const response = await fetch(url, {
@@ -210,7 +210,7 @@ export function AdminPage() {
     if (window.confirm('¿Estás seguro de que quieres eliminar este usuario?')) {
       try {
         const token = localStorage.getItem('authToken');
-        const response = await fetch(`http://localhost:3000/api/usuarios/${userId}`, {
+        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/usuarios/${userId}`, {
           method: 'DELETE',
           headers: { 'Authorization': `Bearer ${token}` }
         });

@@ -61,9 +61,9 @@ export function ClienteDetailPage() {
     try {
       const token = localStorage.getItem('authToken');
       const [clienteRes, expedientesRes, tiposRes] = await Promise.all([
-        fetch(`http://localhost:3000/api/clientes/${clienteId}`, { headers: { 'Authorization': `Bearer ${token}` } }),
-        fetch(`http://localhost:3000/api/clientes/${clienteId}/expedientes`, { headers: { 'Authorization': `Bearer ${token}` } }),
-        fetch(`http://localhost:3000/api/tipos-expediente`, { headers: { 'Authorization': `Bearer ${token}` } })
+        fetch(`${import.meta.env.VITE_API_BASE_URL}/api/clientes/${clienteId}`, { headers: { 'Authorization': `Bearer ${token}` } }),
+        fetch(`${import.meta.env.VITE_API_BASE_URL}/api/clientes/${clienteId}/expedientes`, { headers: { 'Authorization': `Bearer ${token}` } }),
+        fetch(`${import.meta.env.VITE_API_BASE_URL}/api/tipos-expediente`, { headers: { 'Authorization': `Bearer ${token}` } })
       ]);
 
       if (!clienteRes.ok) throw new Error('No se pudo cargar la información del cliente.');
@@ -181,7 +181,7 @@ export function ClienteDetailPage() {
     setApiError(null);
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch(`http://localhost:3000/api/clientes/${clienteId}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/clientes/${clienteId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify(editedCliente)
@@ -275,7 +275,7 @@ export function ClienteDetailPage() {
       // Caso 1: Es un documento existente en el bucket
       if ('storage_key' in file && file.storage_key) {
         const token = localStorage.getItem('authToken');
-        const response = await fetch('http://localhost:3000/api/documentos/generate-download-url', {
+        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/documentos/generate-download-url`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
           body: JSON.stringify({ fileKey: file.storage_key })
@@ -329,7 +329,7 @@ export function ClienteDetailPage() {
       const uploadedDocumentKeys: { nombre_original: string; storage_key: string; }[] = [];
       const token = localStorage.getItem('authToken');
       for (const file of filesToUpload) {
-        const urlResponse = await fetch('http://localhost:3000/api/expedientes/generate-upload-url', {
+        const urlResponse = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/expedientes/generate-upload-url`, {
           method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
           body: JSON.stringify({ fileName: file.name, fileType: file.type })
         });
@@ -343,8 +343,8 @@ export function ClienteDetailPage() {
       const payload = { ...currentExpediente, cliente_id: clienteId, documentos: uploadedDocumentKeys };
 
       const url = isNewExpediente
-        ? 'http://localhost:3000/api/expedientes'
-        : `http://localhost:3000/api/expedientes/${currentExpediente.id}`;
+        ? `${import.meta.env.VITE_API_BASE_URL}/api/expedientes`
+        : `${import.meta.env.VITE_API_BASE_URL}/api/expedientes/${currentExpediente.id}`;
       const saveResponse = await fetch(url, {
         method: isNewExpediente ? 'POST' : 'PUT',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
@@ -366,7 +366,7 @@ export function ClienteDetailPage() {
       setLoading(true);
       try {
         const token = localStorage.getItem('authToken');
-        const response = await fetch(`http://localhost:3000/api/expedientes/${expedienteId}`, {
+        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/expedientes/${expedienteId}`, {
           method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` }
         });
         if (!response.ok) throw new Error('No se pudo eliminar el expediente.');

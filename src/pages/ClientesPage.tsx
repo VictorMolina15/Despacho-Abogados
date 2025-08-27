@@ -92,7 +92,7 @@ export function ClientListPage() {
     setApiError(null);
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch(`http://localhost:3000/api/clientes?page=${page}&pageSize=${pageSize}&searchTerm=${search}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/clientes?page=${page}&pageSize=${pageSize}&searchTerm=${search}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (!response.ok) {
@@ -136,7 +136,7 @@ export function ClientListPage() {
     setFormErrors({});
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch('http://localhost:3000/api/clientes', {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/clientes`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify(newClient)

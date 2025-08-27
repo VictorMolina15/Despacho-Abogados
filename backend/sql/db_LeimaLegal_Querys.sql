@@ -407,3 +407,51 @@ BEGIN
 END$$
 
 DELIMITER ;
+
+DELIMITER $$
+-- Procedure para guardar un token de reseteo
+CREATE PROCEDURE sp_SaveResetToken(
+    IN p_UserId INT,
+    IN p_TokenHash VARCHAR(255),
+    IN p_ExpiresInMinutes INT
+)
+BEGIN
+    INSERT INTO PasswordResetToken (user_id, token_hash, fecha_expiracion)
+    VALUES (p_UserId, p_TokenHash, DATE_ADD(NOW(), INTERVAL p_ExpiresInMinutes MINUTE));
+END$$
+DELIMITER ;
+
+
+DELIMITER $$
+-- Procedure para validar un token y obtener el ID de usuario
+CREATE PROCEDURE sp_ValidateAndUseToken(
+    IN p_TokenHash VARCHAR(255)
+)
+BEGIN
+    -- Primero, marcamos el token como utilizado si es válido y no ha expirado
+    UPDATE PasswordResetToken
+    SET utilizado = TRUE
+    WHERE token_hash = p_TokenHash
+      AND fecha_expiracion > NOW()
+      AND utilizado = FALSE;
+      
+    -- Luego, seleccionamos el user_id si la actualización fue exitosa
+    SELECT user_id 
+    FROM PasswordResetToken 
+    WHERE token_hash = p_TokenHash
+      AND utilizado = TRUE; -- Nos aseguramos de que sea el que acabamos de marcar
+END$$
+DELIMITER ;
+
+DELIMITER $$
+-- Procedure para Registrar las acciones de las tarjetas en Trello desde el Dashboard
+CREATE PROCEDURE sp_LogTrelloAction(
+    IN p_UserId INT,
+    IN p_CardId VARCHAR(255),
+    IN p_Action VARCHAR(255)
+)
+BEGIN
+    INSERT INTO Historial_Acciones (id_usuario, id_tarjeta_trello, accion_realizada)
+    VALUES (p_UserId, p_CardId, p_Action);
+END$$
+DELIMITER ;

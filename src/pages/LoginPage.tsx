@@ -11,6 +11,12 @@ import {
   Paper,
   IconButton,
   Alert,
+  CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
 } from '@mui/material';
 import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
@@ -26,13 +32,51 @@ export function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  const [openResetDialog, setOpenResetDialog] = useState(false);
+  const [resetEmail, setResetEmail] = useState('');
+  const [dialogLoading, setDialogLoading] = useState(false);
+  const [dialogError, setDialogError] = useState<string | null>(null);
+  const [dialogSuccess, setDialogSuccess] = useState<string | null>(null);
+
+  const handleOpenResetDialog = () => {
+    setOpenResetDialog(true);
+    setDialogError(null);
+    setDialogSuccess(null);
+    setResetEmail('');
+  };
+
+  const handleCloseResetDialog = () => {
+    setOpenResetDialog(false);
+  };
+
+  const handleRequestReset = async () => {
+    setDialogLoading(true);
+    setDialogError(null);
+    setDialogSuccess(null);
+
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/request-password-reset`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ correo: resetEmail }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message);
+      setDialogSuccess(data.message);
+    } catch (err: unknown) {
+      setDialogError(err instanceof Error ? err.message : 'Error inesperado.');
+    } finally {
+      setDialogLoading(false);
+    }
+  };
+
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError(null);
     setLoading(true);
 
     try {
-      const response = await fetch('http://localhost:3000/api/login', {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ correo, contrasena }),
@@ -155,16 +199,16 @@ export function LoginPage() {
             >
               {/* Logo y Título */}
               <Box
-                component="img" 
+                component="img"
                 sx={{
                   // Aplicamos estilos responsivos
                   height: {
-                    xs: '80px',  
-                    sm: '85px', 
+                    xs: '80px',
+                    sm: '85px',
                     md: '85px',
                     lg: '100px',
                   },
-                  marginBottom:{ xs: '1rem', sm: '1.5rem', md: '0.5rem', lg: '3rem' },                 
+                  marginBottom: { xs: '1rem', sm: '1.5rem', md: '0.5rem', lg: '3rem' },
                 }}
                 alt="Logo Leima Legal"
                 src={mode === 'dark' ? '/assets/Logo(2)_noBG.png' : '/assets/Logo(1)_crop.png'}
@@ -172,14 +216,14 @@ export function LoginPage() {
               <Typography component="h1" variant="h4" sx={{ fontWeight: 'bold', textAlign: 'center' }}>
                 Bienvenido de Vuelta
               </Typography>
-              <Typography variant="body1" color="text.secondary" sx={{ mb: {xs: 2, sm: 3, md:0, lg:2}}}>
+              <Typography variant="body1" color="text.secondary" sx={{ mb: { xs: 2, sm: 3, md: 0, lg: 2 } }}>
                 Inicia sesión para continuar
               </Typography>
 
               {/* Formulario */}
               <Box component="form" onSubmit={handleSubmit} noValidate sx={{ width: '90%' }}>
                 {error && (
-                  <Alert severity="error" sx={{ width: '100%', mb: {xs: 2, sm: 3, md:0, lg:2} }}>
+                  <Alert severity="error" sx={{ width: '100%', mb: { xs: 2, sm: 3, md: 0, lg: 2 } }}>
                     {error}
                   </Alert>
                 )}
@@ -210,7 +254,7 @@ export function LoginPage() {
                   disabled={loading}
                 />
                 <Box sx={{ textAlign: 'center', width: '100%', mt: 1 }}>
-                  <Link href="#" variant="body2">
+                  <Link href="#" variant="body2" onClick={handleOpenResetDialog}>
                     ¿Olvidaste tu contraseña?
                   </Link>
                 </Box>
@@ -229,6 +273,38 @@ export function LoginPage() {
           </Grid>
         </Grid>
       </Grid>
+      {/* --- Dialogo para recuperar contraseña --- */}
+      <Dialog open={openResetDialog} onClose={handleCloseResetDialog}>
+        <DialogTitle>Restablecer Contraseña</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Introduce tu correo electrónico y te enviaremos un enlace para restablecer tu contraseña. (Asegúrate de que el correo esté registrado en nuestro sistema.)
+          </DialogContentText>
+          {dialogError && <Alert severity="error" sx={{ mt: 2 }}>{dialogError}</Alert>}
+          {dialogSuccess && <Alert severity="success" sx={{ mt: 2 }}>{dialogSuccess}</Alert>}
+          <TextField
+            autoFocus
+            margin="dense"
+            id="reset-email"
+            label="Correo Electrónico"
+            type="email"
+            fullWidth
+            variant="standard"
+            value={resetEmail}
+            onChange={(e) => setResetEmail(e.target.value)}
+            disabled={dialogLoading || !!dialogSuccess}
+          />
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+            En caso de que no recibas el correo, revisa tu carpeta de spam o correo no deseado. Contacta con un Administrador autorizado si el problema persiste.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseResetDialog} disabled={dialogLoading}>Cancelar</Button>
+          <Button onClick={handleRequestReset} disabled={dialogLoading || !!dialogSuccess}>
+            {dialogLoading ? <CircularProgress size={24} /> : 'Enviar Enlace'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Grid>
   );
 }

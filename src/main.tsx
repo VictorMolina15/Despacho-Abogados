@@ -15,6 +15,8 @@ import { AdminPage } from './pages/AdminPage';
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { RoleGuard } from './components/RoleGuard'
 import { ErrorPage } from './pages/ErrorPage'; // Importa la página de error
+import { ResetPasswordPage } from './pages/ResetPasswordPage';
+import { CitasPage } from './pages/CitasPage';
 
 
 const router = createBrowserRouter([
@@ -22,6 +24,10 @@ const router = createBrowserRouter([
     path: '/login',
     element: <LoginPage />,
     errorElement: <ErrorPage />,
+  },
+  {
+    path: '/reset-password/:token',
+    element: <ResetPasswordPage />,
   },
   {
     path: '/',
@@ -50,6 +56,7 @@ const router = createBrowserRouter([
                 ]
               },
               { path: 'divorcios', element: <DivorciosPage /> },
+              { path: 'citas', element: <CitasPage /> },
             ],
           },
           // --- Rutas solo para SuperAdmin ---
@@ -69,7 +76,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <ThemeProvider>
       <CssBaseline />
-      <RouterProvider router={router} />
+      <RouterProvider router={router}/>
     </ThemeProvider>
   </React.StrictMode>,
 );
