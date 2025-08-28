@@ -29,7 +29,7 @@ export function ClientListPage() {
   const navigate = useNavigate();
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [loading, setLoading] = useState(true);
-  
+
   const [apiError, setApiError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -39,7 +39,7 @@ export function ClientListPage() {
 
   // Estados para el diálogo de añadir cliente
   const [openDialog, setOpenDialog] = useState(false);
-  const [dialogLoading,setDialogLoading] = useState(false)
+  const [dialogLoading, setDialogLoading] = useState(false)
   const [newClient, setNewClient] = useState<NewClientFormData>({ nombres: '', apellidos: '', telefono: '', correo: '' });
   const [formErrors, setFormErrors] = useState<FormErrors>({});
 
@@ -65,7 +65,7 @@ export function ClientListPage() {
     setFormErrors(prev => ({ ...prev, [name]: error }));
   };
 
-   const validateField = (name: string, value: string): string | undefined => {
+  const validateField = (name: string, value: string): string | undefined => {
     switch (name) {
       case 'nombres':
       case 'apellidos': {
@@ -93,7 +93,10 @@ export function ClientListPage() {
     try {
       const token = localStorage.getItem('authToken');
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/clientes?page=${page}&pageSize=${pageSize}&searchTerm=${search}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'ngrok-skip-browser-warning': 'true'
+        }
       });
       if (!response.ok) {
         const errorData = await response.json();
@@ -138,7 +141,11 @@ export function ClientListPage() {
       const token = localStorage.getItem('authToken');
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/clientes`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          'ngrok-skip-browser-warning': 'true'
+        },
         body: JSON.stringify(newClient)
       });
       const data = await response.json();
@@ -240,14 +247,14 @@ export function ClientListPage() {
       <Dialog open={openDialog} onClose={handleCloseDialog}>
         <DialogTitle>Añadir Nuevo Cliente</DialogTitle>
         <DialogContent>
-          <TextField name="nombres" label="Nombres" required fullWidth margin="normal" value={newClient.nombres} onChange={handleChange} 
-          onBlur={handleBlur} error={!!formErrors.nombres} helperText={formErrors.nombres} />
-          <TextField name="apellidos" label="Apellidos" required fullWidth margin="normal" value={newClient.apellidos} onChange={handleChange} 
-          onBlur={handleBlur} error={!!formErrors.apellidos} helperText={formErrors.apellidos} />
-          <TextField name="telefono" label="Teléfono" fullWidth margin="normal" value={newClient.telefono} onChange={handleChange} 
-          onBlur={handleBlur} error={!!formErrors.telefono} helperText={formErrors.telefono} />
-          <TextField name="correo" label="Correo Electrónico" required type="email" fullWidth margin="normal" value={newClient.correo} onChange={handleChange} 
-          onBlur={handleBlur} error={!!formErrors.correo} helperText={formErrors.correo} />
+          <TextField name="nombres" label="Nombres" required fullWidth margin="normal" value={newClient.nombres} onChange={handleChange}
+            onBlur={handleBlur} error={!!formErrors.nombres} helperText={formErrors.nombres} />
+          <TextField name="apellidos" label="Apellidos" required fullWidth margin="normal" value={newClient.apellidos} onChange={handleChange}
+            onBlur={handleBlur} error={!!formErrors.apellidos} helperText={formErrors.apellidos} />
+          <TextField name="telefono" label="Teléfono" fullWidth margin="normal" value={newClient.telefono} onChange={handleChange}
+            onBlur={handleBlur} error={!!formErrors.telefono} helperText={formErrors.telefono} />
+          <TextField name="correo" label="Correo Electrónico" required type="email" fullWidth margin="normal" value={newClient.correo} onChange={handleChange}
+            onBlur={handleBlur} error={!!formErrors.correo} helperText={formErrors.correo} />
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseDialog} disabled={dialogLoading}>Cancelar</Button>

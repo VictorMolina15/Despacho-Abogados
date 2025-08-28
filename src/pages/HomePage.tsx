@@ -55,7 +55,10 @@ export function HomePage() {
       setError(null);
       try {
         const token = localStorage.getItem('authToken');
-        const headers = { 'Authorization': `Bearer ${token}` };
+        const headers = {
+          'Authorization': `Bearer ${token}`,
+          'ngrok-skip-browser-warning': 'true'
+        };
 
         // Hacemos las dos peticiones en paralelo
         const [dashboardRes, trelloRes] = await Promise.all([

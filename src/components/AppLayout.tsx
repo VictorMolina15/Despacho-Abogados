@@ -18,10 +18,12 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  useMediaQuery,
 } from '@mui/material';
 import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
 import AccountCircle from '@mui/icons-material/AccountCircle';
+import MenuIcon from '@mui/icons-material/Menu';
 import { useThemeContext } from '../ThemeContext';
 import { Outlet, useNavigate, useLocation, useMatch } from 'react-router-dom'; // Outlet para renderizar rutas hijas
 import { decodeJwt } from '../utils/auth';
@@ -54,6 +56,21 @@ export function AppLayout() {
   const [profileData, setProfileData] = useState<UserProfileData>({
     nombres: '', apellidos: '', telefono: '', correo: '', contrasena: '',
   });
+
+  // --- LÓGICA PARA RESPONSIVIDAD ---
+  const isMobile = useMediaQuery(theme.breakpoints.down('md')); // DETECTAR SI ES MÓVIL
+ 
+  // --- FIN LÓGICA RESPONSIVIDAD ---
+
+  // --- MANEJADORES PARA LOS MENÚS ---
+  const [navMenuAnchorEl, setNavMenuAnchorEl] = useState<null | HTMLElement>(null); 
+
+  const handleOpenNavMenu = (event: React.MouseEvent<HTMLElement>) => { 
+    setNavMenuAnchorEl(event.currentTarget);
+  };
+  const handleCloseNavMenu = () => { 
+    setNavMenuAnchorEl(null);
+  };
 
 
   const [showPassword, setShowPassword] = useState(false);
@@ -97,7 +114,10 @@ export function AppLayout() {
 
     try {
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/usuarios/${decoded.id}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'ngrok-skip-browser-warning': 'true'
+        }
       });
       if (!response.ok) throw new Error('No se pudo cargar tu perfil.');
       const data = await response.json();
@@ -212,7 +232,8 @@ export function AppLayout() {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'ngrok-skip-browser-warning': 'true'
         },
         body: JSON.stringify(updatePayload)
       });
@@ -235,10 +256,14 @@ export function AppLayout() {
     // Se elimina el `finally` para tener un control más preciso del estado de carga.
   };
 
+  
+
+
   return (
-    <Box sx={{ flexGrow: 1}}>
+    <Box sx={{ flexGrow: 1 }}>
       <AppBar position="static" elevation={0} color='transparent' sx={{ backgroundColor: theme.palette.toolbar.main }}>
         <Toolbar sx={{ borderBottom: `1px solid ${theme.palette.divider}` }}>
+
           <Typography
             variant="h6"
             component="div"
@@ -251,8 +276,9 @@ export function AppLayout() {
               style={{ height: '80px', marginTop: '5px' }} // Ajusta el estilo según tus necesidades
             />
           </Typography>
+
           {/* === RENDERIZADO CONDICIONAL DE PESTAÑAS === */}
-          {currentUserRole !== 'SuperAdmin' && (
+          {!isMobile && currentUserRole !== 'SuperAdmin' && (
             <>
               <Button color={isActive('/') ? 'primary' : 'inherit'} onClick={() => navigate('/')} sx={{
                 borderRadius: '0', p: '30px 15px', fontSize: '18px',
@@ -260,14 +286,14 @@ export function AppLayout() {
               }} >
                 Inicio
               </Button>
-              <Button color={ isClientesActive ? 'primary' : 'inherit'} onClick={() => navigate('/clientes')} sx={{
+              <Button color={isClientesActive ? 'primary' : 'inherit'} onClick={() => navigate('/clientes')} sx={{
                 borderRadius: '0', p: '30px 15px', fontSize: '18px',
                 borderBottom: isClientesActive ? `2px solid ${theme.palette.primary.main}` : 'none',
               }} >
                 Clientes
               </Button>
-              <Button 
-                color={isCitasActive ? 'primary' : 'inherit'}  onClick={() => navigate('/citas')} sx={{
+              <Button
+                color={isCitasActive ? 'primary' : 'inherit'} onClick={() => navigate('/citas')} sx={{
                   borderRadius: '0', p: '30px 15px', fontSize: '18px',
                   borderBottom: isCitasActive ? `2px solid ${theme.palette.primary.main}` : 'none',
                 }}
@@ -321,8 +347,38 @@ export function AppLayout() {
             <MenuItem onClick={handleOpenModal}>Mi Cuenta</MenuItem>
             <MenuItem onClick={handleLogout}>Salir</MenuItem>
           </Menu>
+
+          {/* MENÚ PARA MÓVIL (ICONOS A LA DERECHA) */}
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            {/* ÍCONO DE MENÚ HAMBURGUESA A LA DERECHA, SOLO EN MÓVIL */}
+            {isMobile && currentUserRole !== 'SuperAdmin' && (
+              <IconButton size="large" aria-label="navigation menu" onClick={handleOpenNavMenu} color="inherit">
+                <MenuIcon />
+              </IconButton>
+            )}
+          </Box>
         </Toolbar>
       </AppBar>
+
+      {/* --- MENÚS DESPLEGABLES --- */}
+
+      {/* MENÚ DE NAVEGACIÓN MÓVIL */}
+      <Menu
+        id="menu-nav"
+        anchorEl={navMenuAnchorEl}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        keepMounted
+        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+        open={Boolean(navMenuAnchorEl)}
+        onClose={handleCloseNavMenu}
+      >
+        <MenuItem onClick={() => { navigate('/'); handleCloseNavMenu(); }}>Inicio</MenuItem>
+        <MenuItem onClick={() => { navigate('/clientes'); handleCloseNavMenu(); }}>Clientes</MenuItem>
+        <MenuItem onClick={() => { navigate('/citas'); handleCloseNavMenu(); }}>Citas</MenuItem>
+        <MenuItem onClick={() => { navigate('/divorcios'); handleCloseNavMenu(); }}>Divorcios</MenuItem>
+      </Menu>
+
+
       <Box component="main" sx={{ p: 1 }}>
         <Outlet /> {/* Aquí se renderizarán las rutas anidadas */}
       </Box>

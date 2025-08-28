@@ -24,7 +24,10 @@ export function CitasConfirmadas() {
     try {
       const token = localStorage.getItem('authToken');
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/trello/cards?listNames=Confirmadas`, {
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'ngrok-skip-browser-warning': 'true'
+        }
       });
       if (!response.ok) throw new Error((await response.json()).message || 'Error al cargar citas confirmadas.');
       setCards(await response.json());
@@ -54,7 +57,10 @@ export function CitasConfirmadas() {
       const token = localStorage.getItem('authToken');
       await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/trello/move-card/${selectedCard.id}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        headers: {
+          'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`,
+          'ngrok-skip-browser-warning': 'true'
+        },
         body: JSON.stringify({ targetList: 'completadas', note: note })
       });
       fetchConfirmedCards();

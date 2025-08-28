@@ -42,7 +42,7 @@ export function ResetPasswordPage() {
     try {
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/reset-password`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' },
         body: JSON.stringify({ token, newPassword }),
       });
 

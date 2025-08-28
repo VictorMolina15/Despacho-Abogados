@@ -50,7 +50,10 @@ export function AdminPage() {
     try {
       const token = localStorage.getItem('authToken');
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/usuarios?page=${page}&pageSize=${pageSize}&searchTerm=${search}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'ngrok-skip-browser-warning': 'true'
+        }
       });
       if (!response.ok) throw new Error('Error al cargar usuarios.');
       const data = await response.json();
@@ -189,7 +192,10 @@ export function AdminPage() {
     try {
       const response = await fetch(url, {
         method,
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        headers: {
+          'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`,
+          'ngrok-skip-browser-warning': 'true'
+        },
         body: JSON.stringify(currentUser)
       });
       const data = await response.json();
@@ -212,7 +218,10 @@ export function AdminPage() {
         const token = localStorage.getItem('authToken');
         const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/usuarios/${userId}`, {
           method: 'DELETE',
-          headers: { 'Authorization': `Bearer ${token}` }
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'ngrok-skip-browser-warning': 'true'
+          }
         });
         const data = await response.json();
         if (!response.ok) throw new Error(data.message || 'Error al eliminar el usuario.');
@@ -238,7 +247,7 @@ export function AdminPage() {
       </Box>
       <TextField fullWidth label="Buscar usuario por Nombre(s), Correo o Teléfono" value={searchTerm} onChange={handleSearchChange} inputRef={searchInputRef} sx={{ mb: 3 }} />
       {error && <Alert severity="error">{error}</Alert>}
-      <Paper elevation={3}  sx={{ position: 'relative', opacity: loading ? 0.7 : 1, transition: 'opacity 300ms' }}>
+      <Paper elevation={3} sx={{ position: 'relative', opacity: loading ? 0.7 : 1, transition: 'opacity 300ms' }}>
         {/* El spinner se superpone y solo aparece cuando `loading` es true */}
         {loading && (
           <Box sx={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10, backgroundColor: 'rgba(255, 255, 255, 0.1)' }}>

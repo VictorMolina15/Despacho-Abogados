@@ -57,7 +57,7 @@ export function LoginPage() {
     try {
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/request-password-reset`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' },
         body: JSON.stringify({ correo: resetEmail }),
       });
       const data = await response.json();
@@ -78,7 +78,7 @@ export function LoginPage() {
     try {
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/login`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' },
         body: JSON.stringify({ correo, contrasena }),
       });
       const data = await response.json();

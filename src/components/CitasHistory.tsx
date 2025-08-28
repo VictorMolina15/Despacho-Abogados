@@ -68,7 +68,10 @@ export function CitasHistory() {
 
       const listNames = 'Confirmadas,Canceladas,Completadas';
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/trello/cards?listNames=${listNames}&searchTerm=${search}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'ngrok-skip-browser-warning': 'true'
+        }
       });
       if (!response.ok) throw new Error((await response.json()).message || 'Error al cargar el historial.');
       const data = await response.json();

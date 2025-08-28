@@ -61,9 +61,9 @@ export function ClienteDetailPage() {
     try {
       const token = localStorage.getItem('authToken');
       const [clienteRes, expedientesRes, tiposRes] = await Promise.all([
-        fetch(`${import.meta.env.VITE_API_BASE_URL}/api/clientes/${clienteId}`, { headers: { 'Authorization': `Bearer ${token}` } }),
-        fetch(`${import.meta.env.VITE_API_BASE_URL}/api/clientes/${clienteId}/expedientes`, { headers: { 'Authorization': `Bearer ${token}` } }),
-        fetch(`${import.meta.env.VITE_API_BASE_URL}/api/tipos-expediente`, { headers: { 'Authorization': `Bearer ${token}` } })
+        fetch(`${import.meta.env.VITE_API_BASE_URL}/api/clientes/${clienteId}`, { headers: { 'Authorization': `Bearer ${token}`, 'ngrok-skip-browser-warning': 'true' } }),
+        fetch(`${import.meta.env.VITE_API_BASE_URL}/api/clientes/${clienteId}/expedientes`, { headers: { 'Authorization': `Bearer ${token}`, 'ngrok-skip-browser-warning': 'true' } }),
+        fetch(`${import.meta.env.VITE_API_BASE_URL}/api/tipos-expediente`, { headers: { 'Authorization': `Bearer ${token}`, 'ngrok-skip-browser-warning': 'true' } })
       ]);
 
       if (!clienteRes.ok) throw new Error('No se pudo cargar la información del cliente.');
@@ -183,7 +183,10 @@ export function ClienteDetailPage() {
       const token = localStorage.getItem('authToken');
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/clientes/${clienteId}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        headers: {
+          'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`,
+          'ngrok-skip-browser-warning': 'true'
+        },
         body: JSON.stringify(editedCliente)
       });
       if (!response.ok) {
@@ -277,22 +280,25 @@ export function ClienteDetailPage() {
         const token = localStorage.getItem('authToken');
         const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/documentos/generate-download-url`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          headers: {
+            'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`,
+            'ngrok-skip-browser-warning': 'true'
+          },
           body: JSON.stringify({ fileKey: file.storage_key })
         });
         if (!response.ok) throw new Error('No se pudo obtener la URL de visualización.');
         const { downloadURL } = await response.json();
-        
+
         setPreviewDownloadUrl(downloadURL); // Guardamos la URL para el botón de descarga
 
         if (isTxt) {
-           const txtResponse = await fetch(downloadURL);
-           setPreviewContent(await txtResponse.text());
+          const txtResponse = await fetch(downloadURL);
+          setPreviewContent(await txtResponse.text());
         } else if (isPdf) {
-           setPreviewContent(downloadURL); // Para el iframe, usamos la misma URL
+          setPreviewContent(downloadURL); // Para el iframe, usamos la misma URL
         }
 
-      // Caso 2: Es un archivo nuevo (File)
+        // Caso 2: Es un archivo nuevo (File)
       } else if (file instanceof File) {
         const objectUrl = URL.createObjectURL(file);
         setPreviewDownloadUrl(objectUrl); // La URL del objeto sirve para descargar
@@ -304,7 +310,7 @@ export function ClienteDetailPage() {
         }
       }
     } catch (err) {
-       setApiError(err instanceof Error ? err.message : 'Error al cargar la previsualización.');
+      setApiError(err instanceof Error ? err.message : 'Error al cargar la previsualización.');
     } finally {
       setPreviewLoading(false);
     }
@@ -330,7 +336,10 @@ export function ClienteDetailPage() {
       const token = localStorage.getItem('authToken');
       for (const file of filesToUpload) {
         const urlResponse = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/expedientes/generate-upload-url`, {
-          method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          method: 'POST', headers: {
+            'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`,
+            'ngrok-skip-browser-warning': 'true'
+          },
           body: JSON.stringify({ fileName: file.name, fileType: file.type })
         });
         if (!urlResponse.ok) throw new Error(`No se pudo obtener URL para ${file.name}`);
@@ -347,7 +356,10 @@ export function ClienteDetailPage() {
         : `${import.meta.env.VITE_API_BASE_URL}/api/expedientes/${currentExpediente.id}`;
       const saveResponse = await fetch(url, {
         method: isNewExpediente ? 'POST' : 'PUT',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        headers: {
+          'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`,
+          'ngrok-skip-browser-warning': 'true'
+        },
         body: JSON.stringify(payload)
       });
       if (!saveResponse.ok) throw new Error((await saveResponse.json()).message || 'Error al guardar el expediente.');
@@ -367,7 +379,7 @@ export function ClienteDetailPage() {
       try {
         const token = localStorage.getItem('authToken');
         const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/expedientes/${expedienteId}`, {
-          method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` }
+          method: 'DELETE', headers: { 'Authorization': `Bearer ${token}`, 'ngrok-skip-browser-warning': 'true' }
         });
         if (!response.ok) throw new Error('No se pudo eliminar el expediente.');
         await fetchClienteData();
@@ -549,7 +561,7 @@ export function ClienteDetailPage() {
           {previewLoading ? <CircularProgress /> : renderPreview()}
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleClosePreview} sx={{ mx: 2, my:  1}}>Cerrar</Button>
+          <Button onClick={handleClosePreview} sx={{ mx: 2, my: 1 }}>Cerrar</Button>
         </DialogActions>
       </Dialog>
 

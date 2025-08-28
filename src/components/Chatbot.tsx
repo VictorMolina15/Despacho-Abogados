@@ -63,7 +63,8 @@ export function Chatbot() {
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/chatbot/interaction`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'ngrok-skip-browser-warning': 'true'
         },
         body: formData
       });
