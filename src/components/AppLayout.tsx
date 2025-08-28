@@ -268,12 +268,19 @@ export function AppLayout() {
             variant="h6"
             component="div"
             sx={{ flexGrow: 1, cursor: 'pointer' }}
-            onClick={() => navigate('/')} // Navegar a la página principal al hacer clic en el título
+            onClick={() => navigate('/')}
           >
             <img
               src={mode === 'dark' ? '/assets/Logo(2)_crop.png' : '/assets/Logo(1)_crop.png'}
               alt="Logo"
-              style={{ height: '80px', marginTop: '5px' }} // Ajusta el estilo según tus necesidades
+              style={{
+                height: isMobile ? '48px' : '80px',
+                marginTop: '5px',
+                display: 'block',
+                maxWidth: isMobile ? '228px' : '380px',
+                width: '100%',
+                objectFit: 'contain'
+              }}
             />
           </Typography>
 
